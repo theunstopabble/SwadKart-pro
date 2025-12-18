@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { Trash2, ArrowLeft, ShoppingBag } from "lucide-react";
+import axios from "axios"; // API call ke liye
 import { removeFromCart } from "../redux/cartSlice";
 
 const Cart = () => {
   const dispatch = useDispatch();
-  const cartItems = useSelector((state) => state.cart.cartItems);
+
+  // Redux se Cart ka data nikala
+  const { cartItems } = useSelector((state) => state.cart);
 
   // Total Bill Calculate karna
   const totalPrice = cartItems.reduce((acc, item) => acc + item.price, 0);
@@ -15,6 +18,66 @@ const Cart = () => {
     dispatch(removeFromCart(id));
   };
 
+  // 👇 RAZORPAY CHECKOUT HANDLER (Main Payment Logic)
+  const checkoutHandler = async () => {
+    try {
+      // 1. Backend se API Key mango
+      const {
+        data: { key },
+      } = await axios.get(
+        "https://swadkart-backend.onrender.com/api/payment/getkey"
+      );
+
+      // 2. Backend se Order Create karwao
+     const {
+       data: { order },
+     } = await axios.post(
+       "https://swadkart-backend.onrender.com/api/payment/checkout",
+       {
+         amount: totalPrice, // Frontend se total amount bhej rahe hain
+       }
+     );
+
+      // 3. Razorpay Options Setup
+      const options = {
+        key: key,
+        amount: order.amount,
+        currency: "INR",
+        name: "SwadKart",
+        description: "Tasty Food Payment ",
+        image: "https://cdn-icons-png.flaticon.com/512/732/732200.png", // Logo URL
+        order_id: order.id,
+        callback_url: "http://localhost:8000/api/payment/paymentverification", // (Optional: Verification route)
+
+        // Success hone par kya karein:
+        handler: function (response) {
+          alert(
+            `Payment Successful! 🎉\nPayment ID: ${response.razorpay_payment_id}`
+          );
+          // Yahan tum navigate("/") bhi kar sakte ho
+        },
+
+        // User ki details auto-fill karne ke liye (Dummy Data)
+        prefill: {
+          name: "SwadKart User",
+          email: "user@swadkart.com",
+          contact: "9999999999",
+        },
+        theme: {
+          color: "#ff6b6b", // SwadKart ka Red Color
+        },
+      };
+
+      // 4. Razorpay Popup Kholo
+      const razor = new window.Razorpay(options);
+      razor.open();
+    } catch (error) {
+      console.log("Checkout Error:", error);
+      alert("Payment Failed! Check console for details.");
+    }
+  };
+
+  // Agar Cart Khali hai
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
@@ -35,6 +98,7 @@ const Cart = () => {
     );
   }
 
+  // Agar Cart bhara hua hai
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <h1 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
@@ -101,15 +165,12 @@ const Cart = () => {
               </div>
             </div>
 
+            {/* 👇 Payment Button */}
             <button
-              onClick={() =>
-                alert(
-                  "Order Placed Successfully! 🚀 (Payment Integration Coming Soon)"
-                )
-              }
+              onClick={checkoutHandler}
               className="w-full bg-primary hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary/20"
             >
-              Proceed to Checkout
+              Pay Now (₹{totalPrice})
             </button>
           </div>
         </div>

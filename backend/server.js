@@ -1,13 +1,15 @@
 const express = require("express");
 const dotenv = require("dotenv");
+// Configuration Load
+dotenv.config();
 const cors = require("cors");
 const morgan = require("morgan");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
-const productRoutes = require("./routes/productRoutes"); // 1. Yahan Import kiya
+const productRoutes = require("./routes/productRoutes");
+const paymentRoutes = require("./routes/paymentRoutes"); // 1. Yahan Import kiya
 
-// Configuration Load
-dotenv.config();
+
 
 // Database Connection Call
 connectDB(); // 2. Yahan Connect kiya (App banne se pehle)
@@ -22,6 +24,7 @@ app.use(morgan("dev"));
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/payment", paymentRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
