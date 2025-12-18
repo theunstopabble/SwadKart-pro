@@ -19,11 +19,8 @@ const Login = () => {
     try {
       // Backend ko request bhejo (Port 8000 par)
       const { data } = await axios.post(
-        "http://localhost:8000/api/users/login",
-        {
-          email,
-          password,
-        }
+        "https://swadkart-backend.onrender.com/api/users/login",
+        { email, password }
       );
 
       // Agar success hua:

@@ -10,7 +10,9 @@ const Home = () => {
     const fetchProducts = async () => {
       try {
         // Backend se data maang rahe hain
-        const { data } = await axios.get("http://localhost:8000/api/products");
+        const { data } = await axios.get(
+          "https://swadkart-backend.onrender.com/api/products"
+        );
         setProducts(data);
         setLoading(false);
       } catch (error) {

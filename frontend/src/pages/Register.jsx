@@ -20,12 +20,8 @@ const Register = () => {
     try {
       // Backend ko data bhejo
       const { data } = await axios.post(
-        "http://localhost:8000/api/users/register",
-        {
-          name,
-          email,
-          password,
-        }
+        "https://swadkart-backend.onrender.com/api/users/register",
+        { name, email, password }
       );
 
       // Success hone par data save karo aur home pe bhejo
