@@ -7,7 +7,7 @@ import {
   Package,
   Navigation2,
 } from "lucide-react";
-import { BASE_URL } from "../../config"; // 👈 IMPORT IMPORTANT (Path adjust karein)
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT (Path adjust karein)
 
 const DeliveryPartnerDashboard = () => {
   const { userInfo } = useSelector((state) => state.user);
