@@ -10,12 +10,12 @@ import {
   TrendingUp,
   X,
   Edit2,
-  MapPin,
   CheckCircle,
   Clock,
   Truck,
+  User,
 } from "lucide-react";
-import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT (Path adjust karein)
+import { BASE_URL } from "../config";
 
 const AdminDashboard = () => {
   const { userInfo } = useSelector((state) => state.user);
@@ -31,6 +31,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({ revenue: 0, orders: 0, users: 0 });
   const [orders, setOrders] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
+  const [deliveryPartners, setDeliveryPartners] = useState([]); // 👈 NEW
 
   // Forms
   const [selectedRestaurant, setSelectedRestaurant] = useState("");
@@ -50,11 +51,15 @@ const AdminDashboard = () => {
   });
   const [dummyShopData, setDummyShopData] = useState({ name: "", image: "" });
 
+  // Assignment State
+  const [selectedPartner, setSelectedPartner] = useState({}); // Stores selected partner ID for each order
+
   // ================= FETCH DATA =================
   const fetchAllData = async () => {
     const headers = { Authorization: `Bearer ${userInfo.token}` };
+
+    // 1. Fetch Restaurants
     try {
-      // 👇 FIX: Use BASE_URL
       const resRest = await fetch(`${BASE_URL}/api/v1/users/restaurants`, {
         headers,
       });
@@ -67,8 +72,8 @@ const AdminDashboard = () => {
       console.error(err);
     }
 
+    // 2. Fetch Orders
     try {
-      // 👇 FIX: Use BASE_URL
       const resOrders = await fetch(`${BASE_URL}/api/v1/orders/admin/all`, {
         headers,
       });
@@ -88,6 +93,20 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error(err);
     }
+
+    // 3. Fetch Delivery Partners (NEW) 👈
+    try {
+      const resPartners = await fetch(
+        `${BASE_URL}/api/v1/users/delivery-partners`,
+        { headers }
+      );
+      if (resPartners.ok) {
+        const dataPartners = await resPartners.json();
+        setDeliveryPartners(dataPartners);
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -96,11 +115,36 @@ const AdminDashboard = () => {
 
   // ================= ACTIONS =================
 
-  // Create Manual Dummy Shop (FIXED REFRESH)
+  // Assign Delivery Partner Function 👈 NEW
+  const handleAssignPartner = async (orderId) => {
+    const partnerId = selectedPartner[orderId];
+    if (!partnerId) return alert("Please select a delivery partner first!");
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/orders/${orderId}/assign`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+        body: JSON.stringify({ deliveryPartnerId: partnerId }),
+      });
+
+      if (res.ok) {
+        alert("Delivery Partner Assigned! 🚚");
+        fetchAllData(); // Refresh data
+      } else {
+        alert("Failed to assign partner");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Create Manual Dummy Shop
   const handleCreateDummyShop = async (e) => {
     e.preventDefault();
     try {
-      // 👇 FIX: Use BASE_URL
       const res = await fetch(`${BASE_URL}/api/v1/users/admin/create-dummy`, {
         method: "POST",
         headers: {
@@ -114,7 +158,7 @@ const AdminDashboard = () => {
         alert(data.message + " 🏪");
         setShowDummyModal(false);
         setDummyShopData({ name: "", image: "" });
-        await fetchAllData(); // Force Refresh List
+        await fetchAllData();
       } else {
         alert("Error: " + data.message);
       }
@@ -127,7 +171,6 @@ const AdminDashboard = () => {
   const handleAddShop = async (e) => {
     e.preventDefault();
     try {
-      // 👇 FIX: Use BASE_URL
       const res = await fetch(`${BASE_URL}/api/v1/users/admin/create-shop`, {
         method: "POST",
         headers: {
@@ -155,7 +198,6 @@ const AdminDashboard = () => {
     e.preventDefault();
     if (!selectedRestaurant) return alert("Select a restaurant");
     try {
-      // 👇 FIX: Use BASE_URL
       const res = await fetch(`${BASE_URL}/api/v1/products`, {
         method: "POST",
         headers: {
@@ -186,7 +228,6 @@ const AdminDashboard = () => {
   const handleUpdateShop = async (e) => {
     e.preventDefault();
     try {
-      // 👇 FIX: Use BASE_URL
       const res = await fetch(`${BASE_URL}/api/v1/users/${editingShop._id}`, {
         method: "PUT",
         headers: {
@@ -213,6 +254,7 @@ const AdminDashboard = () => {
     setEditingShop(shop);
     setShowShopModal(true);
   };
+
   const getStatusBadge = (order) => {
     if (order.isDelivered)
       return (
@@ -264,7 +306,7 @@ const AdminDashboard = () => {
           ))}
         </div>
 
-        {/* Content */}
+        {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="animate-fade-in-up space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -300,10 +342,11 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* Orders Tab - Updated with Assignment Feature */}
         {activeTab === "orders" && (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden animate-fade-in-up">
             <div className="p-6 border-b border-gray-800">
-              <h3 className="font-bold text-xl">Order History</h3>
+              <h3 className="font-bold text-xl">Order Management</h3>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-gray-400">
@@ -311,8 +354,9 @@ const AdminDashboard = () => {
                   <tr>
                     <th className="p-4">ID</th>
                     <th className="p-4">Customer</th>
-                    <th className="p-4">Amount</th>
                     <th className="p-4">Status</th>
+                    <th className="p-4">Delivery Partner</th>
+                    <th className="p-4">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
@@ -324,10 +368,45 @@ const AdminDashboard = () => {
                       <td className="p-4 text-white font-bold">
                         {o.user?.name}
                       </td>
-                      <td className="p-4 text-green-400 font-bold">
-                        ₹{o.totalPrice}
-                      </td>
                       <td className="p-4">{getStatusBadge(o)}</td>
+
+                      {/* 👇 Assignment Logic */}
+                      <td className="p-4">
+                        {o.deliveryPartner ? (
+                          <span className="text-blue-400 flex items-center gap-1 font-bold">
+                            <User size={14} />{" "}
+                            {o.deliveryPartner.name || "Assigned"}
+                          </span>
+                        ) : (
+                          <select
+                            className="bg-black border border-gray-700 text-white p-2 rounded text-sm outline-none focus:border-primary"
+                            onChange={(e) =>
+                              setSelectedPartner({
+                                ...selectedPartner,
+                                [o._id]: e.target.value,
+                              })
+                            }
+                            value={selectedPartner[o._id] || ""}
+                          >
+                            <option value="">Select Partner</option>
+                            {deliveryPartners.map((partner) => (
+                              <option key={partner._id} value={partner._id}>
+                                {partner.name}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        {!o.deliveryPartner && !o.isDelivered && (
+                          <button
+                            onClick={() => handleAssignPartner(o._id)}
+                            className="bg-primary hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-bold transition-all"
+                          >
+                            Assign
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -336,6 +415,7 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* Shops Tab */}
         {activeTab === "shops" && (
           <div className="animate-fade-in-up">
             <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -343,14 +423,12 @@ const AdminDashboard = () => {
                 <Store className="text-primary" /> Restaurants
               </h2>
               <div className="flex gap-3">
-                {/* Dummy Button */}
                 <button
                   onClick={() => setShowDummyModal(true)}
                   className="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-6 rounded-full flex items-center gap-2 shadow-lg"
                 >
                   <PlusCircle size={20} /> Add Dummy Shop
                 </button>
-                {/* Full Register Button */}
                 <button
                   onClick={() => setShowAddShopModal(true)}
                   className="bg-primary hover:bg-red-600 text-white font-bold py-3 px-6 rounded-full flex items-center gap-2 shadow-lg"
@@ -359,7 +437,6 @@ const AdminDashboard = () => {
                 </button>
               </div>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {restaurants.map((shop) => (
                 <div
@@ -404,6 +481,7 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* Menu Tab */}
         {activeTab === "menu" && (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 animate-fade-in-up">
             <h2 className="text-2xl font-bold flex items-center gap-2 mb-6">
@@ -443,9 +521,7 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* MODALS */}
-
-        {/* Dummy Shop Modal */}
+        {/* Modals Section */}
         {showDummyModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex justify-center items-center z-50 p-4">
             <div className="bg-gray-900 border border-gray-700 w-full max-w-lg rounded-2xl p-8 shadow-2xl relative">
@@ -490,7 +566,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Add Item Modal */}
         {showItemModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex justify-center items-center z-50 p-4">
             <div className="bg-gray-900 border border-gray-700 w-full max-w-lg rounded-2xl p-8 shadow-2xl relative">
@@ -563,7 +638,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Full Shop Modal */}
         {showAddShopModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex justify-center items-center z-50 p-4">
             <div className="bg-gray-900 border border-gray-700 w-full max-w-lg rounded-2xl p-8 shadow-2xl relative">
@@ -617,7 +691,6 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Edit Shop Modal */}
         {showShopModal && editingShop && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex justify-center items-center z-50 p-4">
             <div className="bg-gray-900 border border-gray-700 w-full max-w-lg rounded-2xl p-8 shadow-2xl relative">

@@ -311,9 +311,12 @@ const resetPassword = async (req, res) => {
 
 const getDeliveryPartners = async (req, res) => {
   try {
+    
+
     const partners = await User.find({ role: "delivery_partner" }).select(
       "-password"
     );
+    
     res.json(partners);
   } catch (error) {
     res.status(500).json({ message: error.message });
