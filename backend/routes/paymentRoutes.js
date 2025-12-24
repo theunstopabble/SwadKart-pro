@@ -1,36 +1,35 @@
 const express = require("express");
-const Razorpay = require("razorpay");
-const crypto = require("crypto");
 const router = express.Router();
+const {
+  createRazorpayOrder,
+  verifyPayment,
+  getRazorpayKey,
+} = require("../controllers/paymentController");
+const { protect } = require("../middleware/authMiddleware");
 
-// Razorpay Instance Setup
-const instance = new Razorpay({
-  key_id: process.env.RAZORPAY_API_KEY,
-  key_secret: process.env.RAZORPAY_API_SECRET,
-});
+// ============================================================
+// 💳 PAYMENT ROUTES
+// ============================================================
 
-// 1. Order Create Karne Wala Route
-router.post("/checkout", async (req, res) => {
-  try {
-    const options = {
-      amount: Number(req.body.amount * 100), // Amount paise mein hona chahiye (500 INR = 50000 paise)
-      currency: "INR",
-    };
-    const order = await instance.orders.create(options);
+/**
+ * @route   GET /api/v1/payment/key
+ * @desc    Get Razorpay Public Key
+ * @access  Public (Removed 'protect' to fix 401 Unauthorized error)
+ */
+router.route("/key").get(getRazorpayKey);
 
-    res.status(200).json({
-      success: true,
-      order,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Payment Error" });
-  }
-});
+/**
+ * @route   POST /api/v1/payment/create-order
+ * @desc    Create a new Razorpay Order ID
+ * @access  Private (Requires Login)
+ */
+router.route("/create-order").post(protect, createRazorpayOrder);
 
-// 2. API Key Frontend ko bhejne wala route (Taaki frontend payment popup khol sake)
-router.get("/getkey", (req, res) => {
-  res.status(200).json({ key: process.env.RAZORPAY_API_KEY });
-});
+/**
+ * @route   POST /api/v1/payment/verify
+ * @desc    Verify Payment Signature and update Order Status
+ * @access  Private (Requires Login)
+ */
+router.route("/verify").post(protect, verifyPayment);
 
 module.exports = router;

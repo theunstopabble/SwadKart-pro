@@ -1,47 +1,62 @@
-const express = require("express");
+// 1. ENVIRONMENT VARIABLES LOADING (Must be first)
 const dotenv = require("dotenv");
-// Configuration Load
 dotenv.config();
+
+const express = require("express");
 const cors = require("cors");
-const morgan = require("morgan");
+const path = require("path");
 const connectDB = require("./config/db");
-const userRoutes = require("./routes/userRoutes");
+
+// 2. ROUTE IMPORTS (After dotenv config)
 const productRoutes = require("./routes/productRoutes");
-const paymentRoutes = require("./routes/paymentRoutes"); // 1. Yahan Import kiya
+const userRoutes = require("./routes/userRoutes");
+const orderRoutes = require("./routes/orderRoutes");
+const paymentRoutes = require("./routes/paymentRoutes");
 
+// Connect to Database
+connectDB();
 
-
-// Database Connection Call
-connectDB(); // 2. Yahan Connect kiya (App banne se pehle)
-
-// App Initialize
 const app = express();
 
-// Middlewares
+// 3. MIDDLEWARE
 app.use(express.json());
 app.use(cors());
-app.use(morgan("dev"));
-// Routes
-app.use("/api/users", userRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/payment", paymentRoutes);
 
-// Test Route
+// ============================================================
+// 4. API ROUTES
+// ============================================================
+
+app.use("/api/v1/products", productRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/orders", orderRoutes);
+app.use("/api/v1/payment", paymentRoutes);
+
+// Map '/restaurants' to 'userRoutes'
+app.use("/api/v1/restaurants", userRoutes);
+
+// ============================================================
+// 5. STATIC FILES & UPLOADS
+// ============================================================
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 app.get("/", (req, res) => {
-  res.status(200).json({
-    message: "Welcome to SwadKart API 🚀",
-    status: "Active",
-    mode: process.env.NODE_ENV || "development",
+  res.send("API is running...");
+});
+
+// ============================================================
+// 6. ERROR HANDLING MIDDLEWARE
+// ============================================================
+app.use((err, req, res, next) => {
+  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+  res.status(statusCode);
+  res.json({
+    message: err.message,
+    stack: process.env.NODE_ENV === "production" ? null : err.stack,
   });
 });
 
-// Server Listen
 const PORT = process.env.PORT || 8000;
+
 app.listen(PORT, () => {
-  console.log(`
-  ################################################
-  🚀 SwadKart Server Running on Port: ${PORT}
-  🔗 URL: http://localhost:${PORT}
-  ################################################
-  `);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

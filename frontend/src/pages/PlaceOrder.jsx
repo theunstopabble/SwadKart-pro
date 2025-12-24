@@ -1,0 +1,278 @@
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { clearCart } from "../redux/cartSlice";
+import CheckoutSteps from "../components/CheckoutSteps";
+import { MapPin, Wallet, ShoppingBag, ArrowRight } from "lucide-react";
+import { BASE_URL } from "../config";
+
+const PlaceOrder = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const cart = useSelector((state) => state.cart);
+  const { userInfo } = useSelector((state) => state.user);
+
+  // --- Calculations ---
+  const itemsPrice = cart.cartItems.reduce(
+    (acc, item) => acc + item.price * item.qty,
+    0
+  );
+  const shippingPrice = itemsPrice > 500 ? 0 : 40;
+  const taxPrice = Number((0.05 * itemsPrice).toFixed(2));
+  const totalPrice = (
+    Number(itemsPrice) +
+    Number(shippingPrice) +
+    Number(taxPrice)
+  ).toFixed(2);
+
+  // --- Redirects if steps are missing ---
+  useEffect(() => {
+    if (!cart.shippingAddress.address) {
+      navigate("/shipping");
+    } else if (!cart.paymentMethod) {
+      navigate("/payment");
+    }
+  }, [cart, navigate]);
+
+  // --- 1. Razorpay SDK Loader ---
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // --- 2. Main Order Handler ---
+  const placeOrderHandler = async () => {
+    try {
+      // Step A: Format Items for Backend
+      const formattedOrderItems = cart.cartItems.map((item) => ({
+        name: item.name,
+        qty: item.qty,
+        image: item.image,
+        price: item.price,
+        product: item._id,
+        restaurant: item.restaurant,
+      }));
+
+      const orderData = {
+        orderItems: formattedOrderItems,
+        shippingAddress: cart.shippingAddress,
+        paymentMethod: cart.paymentMethod,
+        itemsPrice: itemsPrice,
+        taxPrice: taxPrice,
+        shippingPrice: shippingPrice,
+        totalPrice: totalPrice,
+      };
+
+      // Step B: Save Order to Database (isPaid: false)
+      const res = await fetch(`${BASE_URL}/api/v1/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      const data = await res.json(); // MongoDB Order ID (data._id)
+
+      if (!res.ok) {
+        throw new Error(data.message || "Order Creation Failed");
+      }
+
+      // Step C: Handle Payment Methods
+      if (cart.paymentMethod === "COD") {
+        dispatch(clearCart());
+        navigate(`/order/${data._id}`);
+      } else if (cart.paymentMethod === "Online") {
+        // --- ONLINE PAYMENT START ---
+        const isScriptLoaded = await loadRazorpayScript();
+        if (!isScriptLoaded) {
+          alert("Razorpay SDK failed to load. Are you online?");
+          return;
+        }
+
+        // 1. Fetch Razorpay Key
+        const keyRes = await fetch(`${BASE_URL}/api/v1/payment/key`, {
+          headers: { Authorization: `Bearer ${userInfo.token}` },
+        });
+        const { key } = await keyRes.json();
+
+        // 2. Create Razorpay Server Order
+        const orderRes = await fetch(
+          `${BASE_URL}/api/v1/payment/create-order`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${userInfo.token}`,
+            },
+            body: JSON.stringify({ amount: totalPrice }),
+          }
+        );
+        const { order: razorpayOrder } = await orderRes.json();
+
+        // 3. Configure Razorpay Options
+        const options = {
+          key: key,
+          amount: razorpayOrder.amount,
+          currency: razorpayOrder.currency,
+          name: "SwadKart",
+          description: "Delicious Food Order",
+          order_id: razorpayOrder.id,
+          handler: async function (response) {
+            // Step D: Verify Payment Signature
+            try {
+              const verifyRes = await fetch(
+                `${BASE_URL}/api/v1/payment/verify`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${userInfo.token}`,
+                  },
+                  body: JSON.stringify({
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature,
+                    orderId: data._id, // MongoDB ID to update isPaid: true
+                  }),
+                }
+              );
+
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) {
+                dispatch(clearCart());
+                navigate(`/order/${data._id}`);
+              } else {
+                alert("Payment Verification Failed");
+              }
+            } catch (error) {
+              alert("Payment Verified but failed to update UI");
+            }
+          },
+          prefill: {
+            name: userInfo.name,
+            email: userInfo.email,
+            contact: userInfo.phone || "9999999999",
+          },
+          theme: { color: "#e11d48" },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        // --- ONLINE PAYMENT END ---
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-white pt-24 px-4 pb-10">
+      <CheckoutSteps step1 step2 step3 step4 />
+
+      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-8 mt-8">
+        {/* LEFT SIDE: Order Details */}
+        <div className="lg:w-2/3 space-y-6">
+          <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-primary">
+              <MapPin /> Shipping Details
+            </h2>
+            <p className="text-gray-300">
+              {cart.shippingAddress.address}, {cart.shippingAddress.city},{" "}
+              {cart.shippingAddress.postalCode}, {cart.shippingAddress.country}
+            </p>
+          </div>
+
+          <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-primary">
+              <Wallet /> Payment Method
+            </h2>
+            <p className="text-gray-300">Method: {cart.paymentMethod}</p>
+          </div>
+
+          <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
+            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-primary">
+              <ShoppingBag /> Order Items
+            </h2>
+            {cart.cartItems.length === 0 ? (
+              <p>Your cart is empty</p>
+            ) : (
+              <div className="space-y-4">
+                {cart.cartItems.map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between border-b border-gray-800 pb-2"
+                  >
+                    <div className="flex items-center gap-4">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-16 h-16 object-cover rounded-lg"
+                      />
+                      <Link
+                        to={`/restaurant/${item.restaurant}`}
+                        className="hover:text-primary font-bold"
+                      >
+                        {item.name}
+                      </Link>
+                    </div>
+                    <div className="text-gray-400">
+                      {item.qty} x ₹{item.price} ={" "}
+                      <span className="text-white font-bold">
+                        ₹{item.qty * item.price}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT SIDE: Summary */}
+        <div className="lg:w-1/3">
+          <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 sticky top-24">
+            <h2 className="text-2xl font-bold mb-6 border-b border-gray-800 pb-4">
+              Order Summary
+            </h2>
+            <div className="space-y-3 text-gray-300 mb-6">
+              <div className="flex justify-between">
+                <span>Items</span>
+                <span>₹{itemsPrice}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Shipping</span>
+                <span>
+                  {shippingPrice === 0 ? "Free" : `₹${shippingPrice}`}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Tax (5%)</span>
+                <span>₹{taxPrice}</span>
+              </div>
+            </div>
+            <div className="flex justify-between text-xl font-bold text-white border-t border-gray-800 pt-4 mb-6">
+              <span>Total</span>
+              <span className="text-primary">₹{totalPrice}</span>
+            </div>
+            <button
+              onClick={placeOrderHandler}
+              className="w-full bg-primary hover:bg-red-600 text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
+            >
+              Place Order <ArrowRight size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PlaceOrder;

@@ -1,122 +1,139 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Mail, Lock, ArrowRight } from "lucide-react";
-import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { setCredentials } from "../redux/userSlice";
+import { User, Mail, Lock, ArrowRight, Loader } from "lucide-react";
 
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [message, setMessage] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { userInfo } = useSelector((state) => state.user);
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+    if (userInfo) navigate("/");
+  }, [navigate, userInfo]);
+
+  const submitHandler = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    if (password !== confirmPassword) {
+      setMessage("Passwords do not match");
+    } else {
+      setIsLoading(true);
+      setMessage(null);
+      try {
+        const res = await fetch("http://localhost:8000/api/v1/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+        });
 
-    try {
-      // Backend ko data bhejo
-      const { data } = await axios.post(
-        "https://swadkart-backend.onrender.com/api/users/register",
-        { name, email, password }
-      );
+        const data = await res.json();
 
-      // Success hone par data save karo aur home pe bhejo
-      localStorage.setItem("userInfo", JSON.stringify(data));
-      navigate("/");
-      alert("Account Created Successfully! Welcome to SwadKart 🍔");
-    } catch (err) {
-      setError(err.response?.data?.message || "Registration Failed");
-    } finally {
-      setLoading(false);
+        if (res.ok) {
+          // Register successful
+          dispatch(setCredentials(data));
+          navigate("/");
+        } else {
+          setMessage(data.message || "Registration Failed");
+        }
+      } catch (err) {
+        setMessage("Something went wrong");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=1981&auto=format&fit=crop')] bg-cover bg-center relative">
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black/70"></div>
-
-      {/* Register Card */}
-      <div className="relative z-10 bg-black/60 backdrop-blur-md p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-700">
-        <h2 className="text-3xl font-bold text-white text-center mb-2">
-          Join SwadKart
+    <div className="min-h-screen flex items-center justify-center bg-black px-4">
+      <div className="max-w-md w-full bg-gray-900 p-8 rounded-2xl shadow-2xl border border-gray-800">
+        <h2 className="text-3xl font-extrabold text-white text-center mb-2">
+          Join SwadKart 🍔
         </h2>
-        <p className="text-gray-400 text-center mb-8">
-          Create an account to order yummy food 🍕
+        <p className="text-gray-400 text-center mb-6">
+          Create an account to start ordering
         </p>
 
-        {error && (
-          <div className="bg-red-500/20 text-red-200 p-3 rounded mb-4 text-sm text-center border border-red-500/50">
-            {error}
+        {message && (
+          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-center font-bold text-sm">
+            {message}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Name Input */}
+        <form onSubmit={submitHandler} className="space-y-4">
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <User className="h-5 w-5 text-gray-400" />
-            </div>
+            <User className="absolute left-4 top-3.5 text-gray-500" size={20} />
             <input
               type="text"
               placeholder="Full Name"
-              className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg focus:outline-none focus:border-primary text-white placeholder-gray-400 transition-colors"
+              className="w-full pl-12 p-3.5 rounded-xl bg-black/50 border border-gray-700 text-white focus:border-primary focus:outline-none"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
           </div>
 
-          {/* Email Input */}
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-gray-400" />
-            </div>
+            <Mail className="absolute left-4 top-3.5 text-gray-500" size={20} />
             <input
               type="email"
               placeholder="Email Address"
-              className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg focus:outline-none focus:border-primary text-white placeholder-gray-400 transition-colors"
+              className="w-full pl-12 p-3.5 rounded-xl bg-black/50 border border-gray-700 text-white focus:border-primary focus:outline-none"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          {/* Password Input */}
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Lock className="h-5 w-5 text-gray-400" />
-            </div>
+            <Lock className="absolute left-4 top-3.5 text-gray-500" size={20} />
             <input
               type="password"
-              placeholder="Password (Min 6 chars)"
-              className="w-full pl-10 pr-4 py-3 bg-gray-800/50 border border-gray-600 rounded-lg focus:outline-none focus:border-primary text-white placeholder-gray-400 transition-colors"
+              placeholder="Password"
+              className="w-full pl-12 p-3.5 rounded-xl bg-black/50 border border-gray-700 text-white focus:border-primary focus:outline-none"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
 
+          <div className="relative">
+            <Lock className="absolute left-4 top-3.5 text-gray-500" size={20} />
+            <input
+              type="password"
+              placeholder="Confirm Password"
+              className="w-full pl-12 p-3.5 rounded-xl bg-black/50 border border-gray-700 text-white focus:border-primary focus:outline-none"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
-            className="w-full bg-primary hover:bg-red-600 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all transform active:scale-95"
+            disabled={isLoading}
+            className="w-full bg-primary hover:bg-red-600 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
           >
-            {loading ? "Creating Account..." : "Sign Up"}{" "}
-            <ArrowRight size={20} />
+            {isLoading ? (
+              <Loader className="animate-spin" />
+            ) : (
+              <>
+                Create Account <ArrowRight size={20} />
+              </>
+            )}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-gray-400 text-sm">
+        <p className="text-gray-400 text-center mt-6 text-sm">
           Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-primary hover:underline font-semibold"
-          >
+          <Link to="/login" className="text-primary font-bold hover:underline">
             Login here
           </Link>
         </p>

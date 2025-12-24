@@ -1,9 +1,11 @@
 import { configureStore } from "@reduxjs/toolkit";
-import cartReducer from "./cartSlice";
+import userReducer from "./userSlice";
+import cartReducer from "./cartSlice"; // 👈 Import kiya
 
 const store = configureStore({
   reducer: {
-    cart: cartReducer,
+    user: userReducer,
+    cart: cartReducer, // 👈 Store mein add kiya
   },
 });
 
