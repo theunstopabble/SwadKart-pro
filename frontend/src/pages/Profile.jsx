@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { User, Mail, Lock, Save, Camera, FileText } from "lucide-react";
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
 
 const Profile = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [description, setDescription] = useState(""); // 👈 New State
+  const [description, setDescription] = useState("");
   const [message, setMessage] = useState(null);
 
   const { userInfo } = useSelector((state) => state.user);
@@ -16,7 +17,7 @@ const Profile = () => {
     if (userInfo) {
       setName(userInfo.name);
       setEmail(userInfo.email);
-      setDescription(userInfo.description || ""); // 👈 Load description
+      setDescription(userInfo.description || "");
     }
   }, [userInfo]);
 
@@ -28,7 +29,8 @@ const Profile = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/users/profile", {
+      // 👇 FIX: Use BASE_URL instead of localhost
+      const res = await fetch(`${BASE_URL}/api/v1/users/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -40,9 +42,8 @@ const Profile = () => {
 
       if (res.ok) {
         alert("Profile Updated Successfully! 🎉");
-        // NOTE: For the UI to update immediately without refresh,
-        // you would typically dispatch a Redux action here to update 'userInfo'.
-        // For now, the alert confirms it's saved in DB.
+        // Optional: Refresh page to see changes or dispatch Redux action
+        // window.location.reload();
       } else {
         alert(data.message || "Update Failed");
       }
@@ -108,7 +109,7 @@ const Profile = () => {
                 </div>
               </div>
 
-              {/* 👇 Description Box */}
+              {/* Description Box */}
               <div>
                 <label className="block text-gray-400 text-sm font-bold mb-2">
                   About / Description

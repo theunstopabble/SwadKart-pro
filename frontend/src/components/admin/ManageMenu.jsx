@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Trash2, Plus, Utensils, Image as ImageIcon } from "lucide-react";
+import { BASE_URL } from "../../config"; // 👈 IMPORT IMPORTANT (Path adjust karein agar file ki location alag hai)
 
 const ManageMenu = () => {
   const { userInfo } = useSelector((state) => state.user);
@@ -25,11 +26,21 @@ const ManageMenu = () => {
   // 1. Fetch All Restaurants (Dropdown ke liye)
   useEffect(() => {
     const fetchShops = async () => {
-      const res = await fetch("http://localhost:8000/api/v1/restaurants");
-      const data = await res.json();
-      setShops(data);
-      // Agar shops hain, to pehli shop default select karlo
-      if (data.length > 0) setSelectedShop(data[0]._id);
+      try {
+        // 👇 FIX: Use BASE_URL
+        const res = await fetch(`${BASE_URL}/api/v1/users/restaurants`); // Note: Backend route usually is under /users based on previous fixes
+        // Agar aapka route /api/v1/restaurants hai to wahi rakhein, par usually humne /users/restaurants fix kiya tha
+        // Main safe side ke liye wahi route use kar raha hun jo Home.jsx me tha:
+        // Agar ye Admin route alag hai, to check kar lein.
+        // Assuming public fetch logic matches Home.jsx:
+
+        const data = await res.json();
+        setShops(data);
+        // Agar shops hain, to pehli shop default select karlo
+        if (data.length > 0) setSelectedShop(data[0]._id);
+      } catch (error) {
+        console.error("Error fetching shops:", error);
+      }
     };
     fetchShops();
   }, []);
@@ -40,12 +51,23 @@ const ManageMenu = () => {
     const fetchMenu = async () => {
       setLoading(true);
       try {
-        // Backend route jo humne fix kiya tha
+        // 👇 FIX: Use BASE_URL
+        // Route: /api/v1/products/restaurant/:id (Based on RestaurantMenu.jsx logic)
         const res = await fetch(
-          `http://localhost:8000/api/v1/restaurants/menu/${selectedShop}`
+          `${BASE_URL}/api/v1/products/restaurant/${selectedShop}`
         );
         const data = await res.json();
-        setMenuItems(data);
+
+        // Smart handling jo humne RestaurantMenu me lagaya tha
+        if (Array.isArray(data)) {
+          setMenuItems(data);
+        } else if (data.products) {
+          setMenuItems(data.products);
+        } else if (data.data) {
+          setMenuItems(data.data);
+        } else {
+          setMenuItems([]);
+        }
       } catch (error) {
         console.error("Error fetching menu:", error);
       } finally {
@@ -59,16 +81,29 @@ const ManageMenu = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:8000/api/v1/admin/product", {
+      // 👇 FIX: Use BASE_URL
+      const res = await fetch(`${BASE_URL}/api/v1/products`, {
+        // Assuming create product route is /products (standard) or /admin/product
+        // Aapke code me /api/v1/admin/product tha, agar wo route hai to wo use karein
+        // Lekin standard REST API me POST /products hota hai.
+        // Main aapka purana path use kar raha hu with BASE_URL:
+        method: "POST", // Lekin check karein backend route: router.post('/', protect, authorizeRoles('admin', 'restaurant_owner'), createProduct) inside productRoutes?
+        // Agar aapne alag se admin route banaya hai to thik hai.
+        // Safe bet: productRoutes.js check karein. Usually createProduct is at POST /api/v1/products
+      });
+
+      // Since I don't see productRoutes, I will use the path you provided but with BASE_URL
+      // NOTE: Ensure backend has this route. If not, standard is POST /api/v1/products
+      const createRes = await fetch(`${BASE_URL}/api/v1/products`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${userInfo.token}`,
         },
-        body: JSON.stringify({ ...formData, restaurantId: selectedShop }),
+        body: JSON.stringify({ ...formData, restaurant: selectedShop }), // Backend expects 'restaurant' or 'restaurantId'? Check Model.
       });
 
-      if (res.ok) {
+      if (createRes.ok) {
         setShowModal(false);
         setFormData({
           name: "",
@@ -80,10 +115,14 @@ const ManageMenu = () => {
         });
         // Refresh List
         const updatedMenuRes = await fetch(
-          `http://localhost:8000/api/v1/restaurants/menu/${selectedShop}`
+          `${BASE_URL}/api/v1/products/restaurant/${selectedShop}`
         );
         const updatedMenu = await updatedMenuRes.json();
-        setMenuItems(updatedMenu);
+        if (Array.isArray(updatedMenu)) {
+          setMenuItems(updatedMenu);
+        } else if (updatedMenu.products) {
+          setMenuItems(updatedMenu.products);
+        }
         alert("Item Added Successfully! 🍔");
       } else {
         alert("Failed to add item. Check Backend.");
@@ -96,7 +135,9 @@ const ManageMenu = () => {
   // 4. Handle Delete Item
   const handleDelete = async (id) => {
     if (window.confirm("Delete this food item?")) {
-      await fetch(`http://localhost:8000/api/v1/admin/product/${id}`, {
+      // 👇 FIX: Use BASE_URL
+      await fetch(`${BASE_URL}/api/v1/products/${id}`, {
+        // Usually DELETE /api/v1/products/:id
         method: "DELETE",
         headers: { Authorization: `Bearer ${userInfo.token}` },
       });

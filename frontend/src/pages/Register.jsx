@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "../redux/userSlice";
 import { User, Mail, Lock, ArrowRight, Loader } from "lucide-react";
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -28,7 +29,9 @@ const Register = () => {
       setIsLoading(true);
       setMessage(null);
       try {
-        const res = await fetch("http://localhost:8000/api/v1/users", {
+        // 👇 FIX: Use BASE_URL instead of localhost
+        const res = await fetch(`${BASE_URL}/api/v1/users/register`, {
+          // Note: Backend route usually is /register or just /users (POST). Based on your previous code it was /register
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, email, password }),
@@ -44,7 +47,8 @@ const Register = () => {
           setMessage(data.message || "Registration Failed");
         }
       } catch (err) {
-        setMessage("Something went wrong");
+        console.error(err); // Debugging ke liye
+        setMessage("Something went wrong. Server unreachable?");
       } finally {
         setIsLoading(false);
       }

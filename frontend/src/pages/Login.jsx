@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 // 👇 FIX: 'login' ki jagah 'setCredentials' import karein
 import { setCredentials } from "../redux/userSlice";
 import { Mail, Lock, LogIn, Loader } from "lucide-react";
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -28,7 +29,8 @@ const Login = () => {
     setError(null);
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/users/login", {
+      // 👇 FIX: Use BASE_URL instead of localhost
+      const res = await fetch(`${BASE_URL}/api/v1/users/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

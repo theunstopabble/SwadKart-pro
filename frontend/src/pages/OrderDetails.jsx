@@ -10,6 +10,7 @@ import {
   Clock,
   ShoppingBag,
 } from "lucide-react";
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
 
 const OrderDetails = () => {
   const { id } = useParams();
@@ -22,7 +23,8 @@ const OrderDetails = () => {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/v1/orders/${id}`, {
+        // 👇 FIX: Use BASE_URL
+        const res = await fetch(`${BASE_URL}/api/v1/orders/${id}`, {
           headers: { Authorization: `Bearer ${userInfo.token}` },
         });
 
@@ -44,7 +46,7 @@ const OrderDetails = () => {
 
   if (loading)
     return (
-      <div className="text-white text-center pt-24">
+      <div className="text-white text-center pt-24 animate-pulse">
         Loading Order Details...
       </div>
     );

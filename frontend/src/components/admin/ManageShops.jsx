@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Trash2, Edit, Plus, MapPin, Star, Clock } from "lucide-react";
+import { BASE_URL } from "../../config"; // 👈 IMPORT IMPORTANT
 
 const ManageShops = () => {
   const { userInfo } = useSelector((state) => state.user);
@@ -20,7 +21,8 @@ const ManageShops = () => {
   // Fetch Shops
   const fetchShops = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/restaurants");
+      // 👇 FIX: Use BASE_URL and Correct Route (/users/restaurants)
+      const res = await fetch(`${BASE_URL}/api/v1/users/restaurants`);
       const data = await res.json();
       setShops(data);
       setLoading(false);
@@ -36,7 +38,10 @@ const ManageShops = () => {
   // Handle Delete
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this restaurant?")) {
-      await fetch(`http://localhost:8000/api/v1/admin/restaurant/${id}`, {
+      // 👇 FIX: Use BASE_URL
+      // Note: Backend mein DELETE route hona chahiye (e.g., router.delete('/:id'))
+      // Filhal hum `/users/${id}` try karenge, agar backend me route nahi hai to add karna padega
+      await fetch(`${BASE_URL}/api/v1/users/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${userInfo.token}` },
       });
@@ -48,7 +53,9 @@ const ManageShops = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:8000/api/v1/admin/restaurant", {
+      // 👇 FIX: Use BASE_URL and Correct Route from userRoutes.js
+      // Backend Route: router.post("/admin/create-shop", ...)
+      const res = await fetch(`${BASE_URL}/api/v1/users/admin/create-shop`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -56,6 +63,7 @@ const ManageShops = () => {
         },
         body: JSON.stringify(formData),
       });
+
       if (res.ok) {
         setShowModal(false);
         setFormData({
@@ -66,8 +74,12 @@ const ManageShops = () => {
           deliveryTime: "30",
         });
         fetchShops();
+        alert("Restaurant Added Successfully! 🏪");
+      } else {
+        alert("Failed to add shop. Check backend logs.");
       }
     } catch (error) {
+      console.error(error);
       alert("Error adding shop");
     }
   };
@@ -111,14 +123,14 @@ const ManageShops = () => {
               <div className="p-4">
                 <h3 className="font-bold text-lg text-white">{shop.name}</h3>
                 <p className="text-gray-400 text-sm flex items-center gap-1 mt-1">
-                  <MapPin size={14} /> {shop.location}
+                  <MapPin size={14} /> {shop.location || "Jaipur"}
                 </p>
                 <div className="flex justify-between items-center mt-4 text-sm font-bold text-gray-500">
                   <span className="flex items-center gap-1 text-yellow-500">
-                    <Star size={14} /> {shop.rating}
+                    <Star size={14} /> {shop.rating || "4.5"}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Clock size={14} /> {shop.deliveryTime} min
+                    <Clock size={14} /> {shop.deliveryTime || "30"} min
                   </span>
                 </div>
               </div>

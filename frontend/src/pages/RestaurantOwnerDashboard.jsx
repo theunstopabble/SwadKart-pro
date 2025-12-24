@@ -3,12 +3,13 @@ import { useSelector } from "react-redux";
 import {
   CookingPot,
   Clock,
-  PlusCircle, // 👇 New Icon
+  PlusCircle,
   ChefHat,
   ClipboardList,
   TrendingUp,
-  X, // Close Icon
+  X,
 } from "lucide-react";
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT (Path adjust karein)
 
 const RestaurantOwnerDashboard = () => {
   const { userInfo } = useSelector((state) => state.user);
@@ -25,14 +26,15 @@ const RestaurantOwnerDashboard = () => {
     price: "",
     description: "",
     category: "",
-    image: "", // Note: Asli app me yahan File Upload logic lagega (Multer/Cloudinary)
+    image: "",
   });
 
   // Fetch Orders
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/v1/orders", {
+        // 👇 FIX: Use BASE_URL
+        const response = await fetch(`${BASE_URL}/api/v1/orders`, {
           headers: { Authorization: `Bearer ${userInfo.token}` },
         });
         const data = await response.json();
@@ -65,7 +67,8 @@ const RestaurantOwnerDashboard = () => {
   const handleAddItem = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://localhost:8000/api/v1/products", {
+      // 👇 FIX: Use BASE_URL
+      const res = await fetch(`${BASE_URL}/api/v1/products`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -118,7 +121,7 @@ const RestaurantOwnerDashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {/* Stats Cards (Same as before) */}
+          {/* Stats Cards */}
           <div className="bg-gray-900/50 backdrop-blur-md p-6 rounded-2xl border border-gray-800/50 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
             <div className="flex justify-between items-start">

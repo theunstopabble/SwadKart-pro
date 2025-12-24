@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Lock, Save, Loader } from "lucide-react";
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
 
 const ResetPassword = () => {
   const { token } = useParams(); // URL se token nikalne ke liye
@@ -24,8 +25,9 @@ const ResetPassword = () => {
     }
 
     try {
+      // 👇 FIX: Use BASE_URL instead of localhost
       const res = await fetch(
-        `http://localhost:8000/api/v1/users/password/reset/${token}`,
+        `${BASE_URL}/api/v1/users/password/reset/${token}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

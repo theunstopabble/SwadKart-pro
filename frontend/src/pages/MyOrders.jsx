@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { Package, MapPin, Clock, ArrowRight } from "lucide-react";
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
 
 const MyOrders = () => {
   const { userInfo } = useSelector((state) => state.user);
@@ -16,12 +17,10 @@ const MyOrders = () => {
     } else {
       const fetchOrders = async () => {
         try {
-          const res = await fetch(
-            "http://localhost:8000/api/v1/orders/myorders",
-            {
-              headers: { Authorization: `Bearer ${userInfo.token}` },
-            }
-          );
+          // 👇 FIX: Use BASE_URL instead of localhost
+          const res = await fetch(`${BASE_URL}/api/v1/orders/myorders`, {
+            headers: { Authorization: `Bearer ${userInfo.token}` },
+          });
           const data = await res.json();
           setOrders(data);
           setLoading(false);

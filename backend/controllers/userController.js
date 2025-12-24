@@ -151,7 +151,6 @@ const getAllRestaurantsPublic = async (req, res) => {
 };
 
 // @desc    Get Single Restaurant by ID (Public)
-// 👇 THIS FUNCTION FIXES THE MENU PAGE ERROR
 const getRestaurantById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -253,13 +252,20 @@ const forgotPassword = async (req, res) => {
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
 
-    const resetUrl = `http://localhost:5173/password/reset/${resetToken}`;
+    // 👇 CRITICAL FIX: Live URL vs Local URL
+    // Agar production (Live) hai to Vercel ka link, nahi to Localhost
+    const frontendUrl =
+      process.env.NODE_ENV === "production"
+        ? "https://swadkart-pro.vercel.app" // Aapka Live Vercel Frontend
+        : "http://localhost:5173";
+
+    const resetUrl = `${frontendUrl}/password/reset/${resetToken}`;
 
     try {
       await sendEmail({
         email: user.email,
-        subject: "Password Reset",
-        message: `Reset Link: ${resetUrl}`,
+        subject: "Password Reset Request",
+        message: `You requested a password reset. Please click the link below to reset your password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`,
       });
       res
         .status(200)
@@ -286,7 +292,8 @@ const resetPassword = async (req, res) => {
       resetPasswordExpire: { $gt: Date.now() },
     });
 
-    if (!user) return res.status(400).json({ message: "Invalid Token" });
+    if (!user)
+      return res.status(400).json({ message: "Invalid or Expired Token" });
     if (req.body.password !== req.body.confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
 
@@ -294,7 +301,9 @@ const resetPassword = async (req, res) => {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
-    res.status(200).json({ success: true, message: "Password Updated" });
+    res
+      .status(200)
+      .json({ success: true, message: "Password Updated Successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -329,7 +338,7 @@ module.exports = {
   getDeliveryPartners,
   getAllRestaurants,
   getAllRestaurantsPublic,
-  getRestaurantById, // 👈 Added Export
+  getRestaurantById,
   createRestaurantByAdmin,
   createDummyRestaurant,
   seedDatabase,

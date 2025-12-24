@@ -15,6 +15,7 @@ import {
   Clock,
   Truck,
 } from "lucide-react";
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT (Path adjust karein)
 
 const AdminDashboard = () => {
   const { userInfo } = useSelector((state) => state.user);
@@ -53,10 +54,10 @@ const AdminDashboard = () => {
   const fetchAllData = async () => {
     const headers = { Authorization: `Bearer ${userInfo.token}` };
     try {
-      const resRest = await fetch(
-        "http://localhost:8000/api/v1/users/restaurants",
-        { headers }
-      );
+      // 👇 FIX: Use BASE_URL
+      const resRest = await fetch(`${BASE_URL}/api/v1/users/restaurants`, {
+        headers,
+      });
       if (resRest.ok) {
         const dataRest = await resRest.json();
         setRestaurants(dataRest);
@@ -67,10 +68,10 @@ const AdminDashboard = () => {
     }
 
     try {
-      const resOrders = await fetch(
-        "http://localhost:8000/api/v1/orders/admin/all",
-        { headers }
-      );
+      // 👇 FIX: Use BASE_URL
+      const resOrders = await fetch(`${BASE_URL}/api/v1/orders/admin/all`, {
+        headers,
+      });
       if (resOrders.ok) {
         const dataOrders = await resOrders.json();
         setOrders(dataOrders);
@@ -99,17 +100,15 @@ const AdminDashboard = () => {
   const handleCreateDummyShop = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(
-        "http://localhost:8000/api/v1/users/admin/create-dummy",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${userInfo.token}`,
-          },
-          body: JSON.stringify(dummyShopData),
-        }
-      );
+      // 👇 FIX: Use BASE_URL
+      const res = await fetch(`${BASE_URL}/api/v1/users/admin/create-dummy`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+        body: JSON.stringify(dummyShopData),
+      });
       const data = await res.json();
       if (res.ok) {
         alert(data.message + " 🏪");
@@ -128,17 +127,15 @@ const AdminDashboard = () => {
   const handleAddShop = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(
-        "http://localhost:8000/api/v1/users/admin/create-shop",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${userInfo.token}`,
-          },
-          body: JSON.stringify(newShop),
-        }
-      );
+      // 👇 FIX: Use BASE_URL
+      const res = await fetch(`${BASE_URL}/api/v1/users/admin/create-shop`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+        body: JSON.stringify(newShop),
+      });
       const data = await res.json();
       if (res.ok) {
         alert("Shop Created!");
@@ -158,7 +155,8 @@ const AdminDashboard = () => {
     e.preventDefault();
     if (!selectedRestaurant) return alert("Select a restaurant");
     try {
-      const res = await fetch("http://localhost:8000/api/v1/products", {
+      // 👇 FIX: Use BASE_URL
+      const res = await fetch(`${BASE_URL}/api/v1/products`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -188,20 +186,18 @@ const AdminDashboard = () => {
   const handleUpdateShop = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(
-        `http://localhost:8000/api/v1/users/${editingShop._id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${userInfo.token}`,
-          },
-          body: JSON.stringify({
-            name: editingShop.name,
-            image: editingShop.image,
-          }),
-        }
-      );
+      // 👇 FIX: Use BASE_URL
+      const res = await fetch(`${BASE_URL}/api/v1/users/${editingShop._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+        body: JSON.stringify({
+          name: editingShop.name,
+          image: editingShop.image,
+        }),
+      });
       if (res.ok) {
         alert("Updated!");
         setShowShopModal(false);

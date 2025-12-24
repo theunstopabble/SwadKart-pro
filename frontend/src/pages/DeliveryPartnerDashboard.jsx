@@ -7,6 +7,7 @@ import {
   Package,
   Navigation2,
 } from "lucide-react";
+import { BASE_URL } from "../../config"; // 👈 IMPORT IMPORTANT (Path adjust karein)
 
 const DeliveryPartnerDashboard = () => {
   const { userInfo } = useSelector((state) => state.user);
@@ -16,12 +17,11 @@ const DeliveryPartnerDashboard = () => {
   // 1. Fetch Assignments
   const fetchMyDeliveries = async () => {
     try {
-      const response = await fetch(
-        "http://localhost:8000/api/v1/orders/my-deliveries",
-        {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        }
-      );
+      // 👇 FIX: Use BASE_URL
+      // Ensure backend has route: router.get('/my-deliveries', protect, getMyDeliveries)
+      const response = await fetch(`${BASE_URL}/api/v1/orders/my-deliveries`, {
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      });
       const data = await response.json();
       if (response.ok) setTasks(data);
     } catch (error) {
@@ -40,13 +40,12 @@ const DeliveryPartnerDashboard = () => {
     if (!window.confirm("Are you sure this order is delivered?")) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:8000/api/v1/orders/${id}/deliver`,
-        {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${userInfo.token}` },
-        }
-      );
+      // 👇 FIX: Use BASE_URL
+      // Route: router.put('/:id/deliver', protect, updateOrderToDelivered)
+      const response = await fetch(`${BASE_URL}/api/v1/orders/${id}/deliver`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${userInfo.token}` },
+      });
 
       if (response.ok) {
         alert("Order Delivered Successfully! 🚀");

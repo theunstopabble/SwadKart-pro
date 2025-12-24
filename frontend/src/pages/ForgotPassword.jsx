@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Mail, ArrowRight, Loader } from "lucide-react";
+import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -15,15 +16,12 @@ const ForgotPassword = () => {
     setError(null);
 
     try {
-      // Backend Route match karein
-      const response = await fetch(
-        "http://localhost:8000/api/v1/users/password/forgot",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        }
-      );
+      // 👇 FIX: Use BASE_URL instead of localhost
+      const response = await fetch(`${BASE_URL}/api/v1/users/password/forgot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
 
       const data = await response.json();
 
