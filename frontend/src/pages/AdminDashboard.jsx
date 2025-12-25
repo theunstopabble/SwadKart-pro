@@ -14,7 +14,12 @@ import {
   Clock,
   Truck,
   User,
+  Calendar, // 👈 New
+  Eye, // 👈 New
+  MapPin, // 👈 New
 } from "lucide-react";
+
+// 👇 FIX: Path corrected for 'src/pages/AdminDashboard.jsx'
 import { BASE_URL } from "../config";
 
 const AdminDashboard = () => {
@@ -27,15 +32,20 @@ const AdminDashboard = () => {
   const [showAddShopModal, setShowAddShopModal] = useState(false);
   const [showDummyModal, setShowDummyModal] = useState(false);
 
+  // 👇 NEW: Order Details Modal State
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
   // Data
   const [stats, setStats] = useState({ revenue: 0, orders: 0, users: 0 });
   const [orders, setOrders] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
-  const [deliveryPartners, setDeliveryPartners] = useState([]); // 👈 NEW
+  const [deliveryPartners, setDeliveryPartners] = useState([]);
 
-  // Forms
+  // Forms & Selections
   const [selectedRestaurant, setSelectedRestaurant] = useState("");
   const [editingShop, setEditingShop] = useState(null);
+  const [selectedPartner, setSelectedPartner] = useState({});
+
   const [newItem, setNewItem] = useState({
     name: "",
     price: "",
@@ -51,34 +61,27 @@ const AdminDashboard = () => {
   });
   const [dummyShopData, setDummyShopData] = useState({ name: "", image: "" });
 
-  // Assignment State
-  const [selectedPartner, setSelectedPartner] = useState({}); // Stores selected partner ID for each order
-
   // ================= FETCH DATA =================
   const fetchAllData = async () => {
     const headers = { Authorization: `Bearer ${userInfo.token}` };
 
-    // 1. Fetch Restaurants
     try {
+      // 1. Restaurants
       const resRest = await fetch(`${BASE_URL}/api/v1/users/restaurants`, {
         headers,
       });
+      const dataRest = await resRest.json();
       if (resRest.ok) {
-        const dataRest = await resRest.json();
         setRestaurants(dataRest);
         setStats((prev) => ({ ...prev, users: dataRest.length }));
       }
-    } catch (err) {
-      console.error(err);
-    }
 
-    // 2. Fetch Orders
-    try {
+      // 2. Orders
       const resOrders = await fetch(`${BASE_URL}/api/v1/orders/admin/all`, {
         headers,
       });
+      const dataOrders = await resOrders.json();
       if (resOrders.ok) {
-        const dataOrders = await resOrders.json();
         setOrders(dataOrders);
         const totalRev = dataOrders.reduce(
           (acc, order) => acc + (order.isPaid ? order.totalPrice : 0),
@@ -90,20 +93,14 @@ const AdminDashboard = () => {
           orders: dataOrders.length,
         }));
       }
-    } catch (err) {
-      console.error(err);
-    }
 
-    // 3. Fetch Delivery Partners (NEW) 👈
-    try {
+      // 3. Delivery Partners
       const resPartners = await fetch(
         `${BASE_URL}/api/v1/users/delivery-partners`,
         { headers }
       );
-      if (resPartners.ok) {
-        const dataPartners = await resPartners.json();
-        setDeliveryPartners(dataPartners);
-      }
+      const dataPartners = await resPartners.json();
+      if (resPartners.ok) setDeliveryPartners(dataPartners);
     } catch (err) {
       console.error(err);
     }
@@ -114,8 +111,6 @@ const AdminDashboard = () => {
   }, [userInfo, activeTab]);
 
   // ================= ACTIONS =================
-
-  // Assign Delivery Partner Function 👈 NEW
   const handleAssignPartner = async (orderId) => {
     const partnerId = selectedPartner[orderId];
     if (!partnerId) return alert("Please select a delivery partner first!");
@@ -129,19 +124,16 @@ const AdminDashboard = () => {
         },
         body: JSON.stringify({ deliveryPartnerId: partnerId }),
       });
-
       if (res.ok) {
-        alert("Delivery Partner Assigned! 🚚");
-        fetchAllData(); // Refresh data
-      } else {
-        alert("Failed to assign partner");
+        alert("Assigned! 🚚");
+        fetchAllData();
       }
     } catch (error) {
       console.error(error);
     }
   };
 
-  // Create Manual Dummy Shop
+  // Generic Handlers
   const handleCreateDummyShop = async (e) => {
     e.preventDefault();
     try {
@@ -153,21 +145,16 @@ const AdminDashboard = () => {
         },
         body: JSON.stringify(dummyShopData),
       });
-      const data = await res.json();
       if (res.ok) {
-        alert(data.message + " 🏪");
         setShowDummyModal(false);
-        setDummyShopData({ name: "", image: "" });
-        await fetchAllData();
-      } else {
-        alert("Error: " + data.message);
+        fetchAllData();
+        alert("Dummy Shop Created");
       }
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // Add Full Shop
   const handleAddShop = async (e) => {
     e.preventDefault();
     try {
@@ -179,21 +166,16 @@ const AdminDashboard = () => {
         },
         body: JSON.stringify(newShop),
       });
-      const data = await res.json();
       if (res.ok) {
-        alert("Shop Created!");
         setShowAddShopModal(false);
-        setNewShop({ name: "", email: "", password: "", image: "" });
         fetchAllData();
-      } else {
-        alert(data.message);
+        alert("Shop Created");
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Add Menu Item
   const handleAddItem = async (e) => {
     e.preventDefault();
     if (!selectedRestaurant) return alert("Select a restaurant");
@@ -207,24 +189,14 @@ const AdminDashboard = () => {
         body: JSON.stringify({ ...newItem, restaurantId: selectedRestaurant }),
       });
       if (res.ok) {
-        alert("Item Added!");
         setShowItemModal(false);
-        setNewItem({
-          name: "",
-          price: "",
-          description: "",
-          category: "",
-          image: "",
-        });
-      } else {
-        alert("Error adding item");
+        alert("Item Added");
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  // Update Shop
   const handleUpdateShop = async (e) => {
     e.preventDefault();
     try {
@@ -240,16 +212,15 @@ const AdminDashboard = () => {
         }),
       });
       if (res.ok) {
-        alert("Updated!");
         setShowShopModal(false);
         fetchAllData();
+        alert("Updated");
       }
     } catch (err) {
       console.error(err);
     }
   };
 
-  // UI Helpers
   const openEditModal = (shop) => {
     setEditingShop(shop);
     setShowShopModal(true);
@@ -278,11 +249,9 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-black text-white pt-24 pb-10 px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold flex items-center gap-3">
-            <span className="text-4xl">👑</span> Admin Control Center
-          </h1>
-        </div>
+        <h1 className="text-4xl font-extrabold mb-8 flex items-center gap-3">
+          👑 Admin Control Center
+        </h1>
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-4 mb-10 border-b border-gray-800 pb-4">
@@ -308,52 +277,56 @@ const AdminDashboard = () => {
 
         {/* Overview Tab */}
         {activeTab === "overview" && (
-          <div className="animate-fade-in-up space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-green-500/20 rounded-lg text-green-500">
-                    <TrendingUp size={24} />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-xs font-bold uppercase">
-                      Revenue
-                    </p>
-                    <h3 className="text-2xl font-bold">
-                      ₹{stats.revenue.toLocaleString()}
-                    </h3>
-                  </div>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in-up">
+            <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 flex items-center gap-4">
+              <div className="p-3 bg-green-500/20 rounded-lg text-green-500">
+                <TrendingUp size={24} />
               </div>
-              <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-orange-500/20 rounded-lg text-orange-500">
-                    <Store size={24} />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-xs font-bold uppercase">
-                      Restaurants
-                    </p>
-                    <h3 className="text-2xl font-bold">{stats.users}</h3>
-                  </div>
-                </div>
+              <div>
+                <p className="text-gray-400 text-xs font-bold uppercase">
+                  Revenue
+                </p>
+                <h3 className="text-2xl font-bold">
+                  ₹{stats.revenue.toLocaleString()}
+                </h3>
+              </div>
+            </div>
+            <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 flex items-center gap-4">
+              <div className="p-3 bg-blue-500/20 rounded-lg text-blue-500">
+                <ShoppingBag size={24} />
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs font-bold uppercase">
+                  Total Orders
+                </p>
+                <h3 className="text-2xl font-bold">{stats.orders}</h3>
+              </div>
+            </div>
+            <div className="bg-gray-900 p-6 rounded-2xl border border-gray-800 flex items-center gap-4">
+              <div className="p-3 bg-orange-500/20 rounded-lg text-orange-500">
+                <Store size={24} />
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs font-bold uppercase">
+                  Restaurants
+                </p>
+                <h3 className="text-2xl font-bold">{stats.users}</h3>
               </div>
             </div>
           </div>
         )}
 
-        {/* Orders Tab - Updated with Assignment Feature */}
+        {/* Orders Tab (UPDATED TABLE) */}
         {activeTab === "orders" && (
           <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden animate-fade-in-up">
-            <div className="p-6 border-b border-gray-800">
-              <h3 className="font-bold text-xl">Order Management</h3>
-            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-gray-400">
                 <thead className="bg-black text-gray-200 uppercase font-bold text-sm">
                   <tr>
                     <th className="p-4">ID</th>
+                    <th className="p-4">Date</th> {/* 👈 NEW */}
                     <th className="p-4">Customer</th>
+                    <th className="p-4">Amount</th> {/* 👈 NEW */}
                     <th className="p-4">Status</th>
                     <th className="p-4">Delivery Partner</th>
                     <th className="p-4">Action</th>
@@ -365,43 +338,65 @@ const AdminDashboard = () => {
                       <td className="p-4 text-primary font-mono text-xs">
                         #{o._id.substring(0, 6)}
                       </td>
-                      <td className="p-4 text-white font-bold">
+                      <td className="p-4 text-xs">
+                        <div className="flex items-center gap-1">
+                          <Calendar size={12} />{" "}
+                          {new Date(o.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-gray-500">
+                          {new Date(o.createdAt).toLocaleTimeString()}
+                        </div>
+                      </td>
+                      <td className="p-4 font-bold text-white">
                         {o.user?.name}
+                      </td>
+                      <td className="p-4 font-bold text-white">
+                        ₹{o.totalPrice}
                       </td>
                       <td className="p-4">{getStatusBadge(o)}</td>
 
-                      {/* 👇 Assignment Logic */}
+                      {/* Delivery Partner Logic */}
                       <td className="p-4">
                         {o.deliveryPartner ? (
                           <span className="text-blue-400 flex items-center gap-1 font-bold">
-                            <User size={14} />{" "}
-                            {o.deliveryPartner.name || "Assigned"}
+                            <User size={14} /> {o.deliveryPartner.name}
                           </span>
                         ) : (
                           <select
-                            className="bg-black border border-gray-700 text-white p-2 rounded text-sm outline-none focus:border-primary"
+                            className="bg-black border border-gray-700 text-white p-2 rounded text-sm outline-none"
                             onChange={(e) =>
                               setSelectedPartner({
                                 ...selectedPartner,
                                 [o._id]: e.target.value,
                               })
                             }
-                            value={selectedPartner[o._id] || ""}
                           >
                             <option value="">Select Partner</option>
-                            {deliveryPartners.map((partner) => (
-                              <option key={partner._id} value={partner._id}>
-                                {partner.name}
+                            {deliveryPartners.map((p) => (
+                              <option key={p._id} value={p._id}>
+                                {p.name}
                               </option>
                             ))}
                           </select>
                         )}
                       </td>
-                      <td className="p-4">
+
+                      {/* Action Buttons */}
+                      <td className="p-4 flex items-center gap-2">
+                        {/* View Details Button */}
+                        <button
+                          onClick={() => setSelectedOrder(o)}
+                          className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-white"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+
+                        {/* Assign Button */}
                         {!o.deliveryPartner && !o.isDelivered && (
                           <button
                             onClick={() => handleAssignPartner(o._id)}
-                            className="bg-primary hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-bold transition-all"
+                            className="bg-primary hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-bold"
                           >
                             Assign
                           </button>
@@ -521,7 +516,7 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Modals Section */}
+        {/* Modals Section (Create Shops/Items) */}
         {showDummyModal && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex justify-center items-center z-50 p-4">
             <div className="bg-gray-900 border border-gray-700 w-full max-w-lg rounded-2xl p-8 shadow-2xl relative">
@@ -725,6 +720,104 @@ const AdminDashboard = () => {
                   Save
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* 👇 NEW: ORDER DETAILS MODAL */}
+        {selectedOrder && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+            <div className="bg-gray-900 border border-gray-700 w-full max-w-2xl rounded-2xl p-6 shadow-2xl relative animate-fade-in-up">
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white"
+              >
+                <X size={24} />
+              </button>
+
+              <h2 className="text-2xl font-bold mb-1 flex items-center gap-2">
+                Order #{selectedOrder._id.substring(0, 8)}
+                <span
+                  className={`text-xs px-2 py-1 rounded-full ${
+                    selectedOrder.isPaid
+                      ? "bg-green-500/20 text-green-400"
+                      : "bg-red-500/20 text-red-400"
+                  }`}
+                >
+                  {selectedOrder.isPaid ? "PAID" : "UNPAID"}
+                </span>
+              </h2>
+              <p className="text-gray-400 text-sm mb-6">
+                {new Date(selectedOrder.createdAt).toString()}
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-black/40 p-4 rounded-xl">
+                  <h3 className="text-gray-400 text-xs font-bold uppercase mb-2 flex items-center gap-2">
+                    <User size={14} /> Customer Details
+                  </h3>
+                  <p className="font-bold text-white">
+                    {selectedOrder.user?.name}
+                  </p>
+                  <p className="text-gray-400 text-sm">
+                    {selectedOrder.user?.email}
+                  </p>
+                  <p className="text-gray-400 text-sm mt-1">
+                    {selectedOrder.user?.phone || "No Phone"}
+                  </p>
+                </div>
+                <div className="bg-black/40 p-4 rounded-xl">
+                  <h3 className="text-gray-400 text-xs font-bold uppercase mb-2 flex items-center gap-2">
+                    <MapPin size={14} /> Shipping Address
+                  </h3>
+                  <p className="text-gray-300 text-sm">
+                    {selectedOrder.shippingAddress?.address},{" "}
+                    {selectedOrder.shippingAddress?.city}
+                    <br />
+                    {selectedOrder.shippingAddress?.postalCode},{" "}
+                    {selectedOrder.shippingAddress?.country}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-black/40 p-4 rounded-xl">
+                <h3 className="text-gray-400 text-xs font-bold uppercase mb-3 flex items-center gap-2">
+                  <ShoppingBag size={14} /> Order Items
+                </h3>
+                <div className="space-y-3">
+                  {selectedOrder.orderItems.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center border-b border-gray-800 pb-2 last:border-0"
+                    >
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-10 h-10 rounded-lg object-cover"
+                        />
+                        <div>
+                          <p className="text-sm font-bold text-white">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {item.qty} x ₹{item.price}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="font-bold text-white">
+                        ₹{item.qty * item.price}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-700 flex justify-between items-center">
+                  <span className="text-gray-400">Total Amount</span>
+                  <span className="text-xl font-extrabold text-primary">
+                    ₹{selectedOrder.totalPrice}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         )}

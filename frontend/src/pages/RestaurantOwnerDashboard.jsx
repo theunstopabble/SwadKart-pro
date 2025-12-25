@@ -8,18 +8,28 @@ import {
   ClipboardList,
   TrendingUp,
   X,
+  User,
+  MapPin,
+  ShoppingBag,
+  CheckCircle,
+  Truck, // Truck icon import kiya
 } from "lucide-react";
-import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT (Path adjust karein)
+// 👇 Path Update: Sirf '../config' kyunki file 'src/pages' me hai
+import { BASE_URL } from "../config";
 
 const RestaurantOwnerDashboard = () => {
   const { userInfo } = useSelector((state) => state.user);
 
   // States
   const [orders, setOrders] = useState([]);
+  const [deliveryPartners, setDeliveryPartners] = useState([]); // 👈 NEW: Partners List
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ revenue: 0, pending: 0, delivered: 0 });
 
-  // 👇 Modal State
+  // Assignment State
+  const [selectedPartner, setSelectedPartner] = useState({});
+
+  // Modal State
   const [showModal, setShowModal] = useState(false);
   const [newItem, setNewItem] = useState({
     name: "",
@@ -29,45 +39,83 @@ const RestaurantOwnerDashboard = () => {
     image: "",
   });
 
-  // Fetch Orders
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        // 👇 FIX: Use BASE_URL
-        const response = await fetch(`${BASE_URL}/api/v1/orders`, {
-          headers: { Authorization: `Bearer ${userInfo.token}` },
+  // ================= FETCH DATA =================
+  const fetchData = async () => {
+    const headers = { Authorization: `Bearer ${userInfo.token}` };
+    setLoading(true);
+    try {
+      // 1. Fetch Orders
+      const resOrders = await fetch(`${BASE_URL}/api/v1/orders`, { headers });
+      const dataOrders = await resOrders.json();
+
+      // 2. Fetch Delivery Partners (For Dropdown)
+      const resPartners = await fetch(
+        `${BASE_URL}/api/v1/users/delivery-partners`,
+        { headers }
+      );
+      const dataPartners = await resPartners.json();
+
+      if (resOrders.ok) {
+        setOrders(dataOrders);
+        setDeliveryPartners(dataPartners || []); // Save partners
+
+        // Calculate Stats
+        const totalRevenue = dataOrders.reduce(
+          (acc, order) => acc + (order.isPaid ? order.totalPrice : 0),
+          0
+        );
+        const pendingCount = dataOrders.filter((o) => !o.isDelivered).length;
+        const deliveredCount = dataOrders.filter((o) => o.isDelivered).length;
+
+        setStats({
+          revenue: totalRevenue,
+          pending: pendingCount,
+          delivered: deliveredCount,
         });
-        const data = await response.json();
-
-        if (response.ok) {
-          setOrders(data);
-          const totalRevenue = data.reduce(
-            (acc, order) => acc + (order.isPaid ? order.totalPrice : 0),
-            0
-          );
-          const pendingCount = data.filter((o) => !o.isDelivered).length;
-          const deliveredCount = data.filter((o) => o.isDelivered).length;
-
-          setStats({
-            revenue: totalRevenue,
-            pending: pendingCount,
-            delivered: deliveredCount,
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setLoading(false);
       }
-    };
-    if (userInfo) fetchOrders();
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userInfo) fetchData();
   }, [userInfo]);
 
-  // 👇 Handle Create Item
+  // ================= ACTIONS =================
+
+  // Assign Partner
+  const handleAssignPartner = async (orderId) => {
+    const partnerId = selectedPartner[orderId];
+    if (!partnerId) return alert("Please select a delivery partner first!");
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/orders/${orderId}/assign`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+        body: JSON.stringify({ deliveryPartnerId: partnerId }),
+      });
+
+      if (res.ok) {
+        alert("Delivery Partner Assigned! 🚚");
+        fetchData(); // Refresh list
+      } else {
+        alert("Failed to assign partner");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Add Item
   const handleAddItem = async (e) => {
     e.preventDefault();
     try {
-      // 👇 FIX: Use BASE_URL
       const res = await fetch(`${BASE_URL}/api/v1/products`, {
         method: "POST",
         headers: {
@@ -98,19 +146,17 @@ const RestaurantOwnerDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-950 pt-24 pb-12 px-4 sm:px-6 lg:px-8 text-white relative">
       <div className="max-w-7xl mx-auto">
-        {/* Header & Add Button */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-extrabold flex items-center gap-3 tracking-tight">
               <ChefHat className="text-primary h-10 w-10" />
-              Restaurant Dashboard
+              Kitchen Dashboard
             </h1>
             <p className="text-gray-400 mt-2 text-lg">
-              Overview of your live kitchen operations.
+              Manage orders & assignments.
             </p>
           </div>
-
-          {/* 👇 ADD ITEM BUTTON */}
           <button
             onClick={() => setShowModal(true)}
             className="bg-primary hover:bg-red-700 text-white font-bold py-3 px-6 rounded-full flex items-center gap-2 shadow-lg shadow-primary/30 transition-all active:scale-95"
@@ -121,13 +167,11 @@ const RestaurantOwnerDashboard = () => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {/* Stats Cards */}
-          <div className="bg-gray-900/50 backdrop-blur-md p-6 rounded-2xl border border-gray-800/50 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-yellow-500"></div>
+          <div className="bg-gray-900/50 backdrop-blur-md p-6 rounded-2xl border border-gray-800 relative">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-400 font-medium mb-1 uppercase text-xs">
-                  Pending Orders
+                <p className="text-gray-400 text-xs font-bold uppercase">
+                  Pending
                 </p>
                 <h3 className="text-4xl font-extrabold text-white">
                   {stats.pending}
@@ -138,12 +182,10 @@ const RestaurantOwnerDashboard = () => {
               </div>
             </div>
           </div>
-
-          <div className="bg-gray-900/50 backdrop-blur-md p-6 rounded-2xl border border-gray-800/50 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+          <div className="bg-gray-900/50 backdrop-blur-md p-6 rounded-2xl border border-gray-800 relative">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-400 font-medium mb-1 uppercase text-xs">
+                <p className="text-gray-400 text-xs font-bold uppercase">
                   Revenue
                 </p>
                 <h3 className="text-4xl font-extrabold text-white">
@@ -155,12 +197,10 @@ const RestaurantOwnerDashboard = () => {
               </div>
             </div>
           </div>
-
-          <div className="bg-gray-900/50 backdrop-blur-md p-6 rounded-2xl border border-gray-800/50 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+          <div className="bg-gray-900/50 backdrop-blur-md p-6 rounded-2xl border border-gray-800 relative">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-gray-400 font-medium mb-1 uppercase text-xs">
+                <p className="text-gray-400 text-xs font-bold uppercase">
                   Completed
                 </p>
                 <h3 className="text-4xl font-extrabold text-white">
@@ -174,9 +214,9 @@ const RestaurantOwnerDashboard = () => {
           </div>
         </div>
 
-        {/* Live Orders List */}
+        {/* Live Orders List (ENHANCED) */}
         <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 border-b border-gray-800 pb-4">
-          <CookingPot className="text-primary" /> Recent Orders
+          <CookingPot className="text-primary" /> Live Orders
         </h2>
 
         {loading ? (
@@ -188,30 +228,107 @@ const RestaurantOwnerDashboard = () => {
             No active orders right now.
           </p>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {orders.map((order) => (
               <div
                 key={order._id}
-                className="bg-gray-900/80 backdrop-blur p-5 rounded-xl border border-gray-800 flex flex-col md:flex-row justify-between items-center gap-6"
+                className="bg-gray-900 border border-gray-800 rounded-2xl p-6 hover:border-gray-700 transition-all shadow-xl"
               >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-bold text-primary">
+                {/* Order Header */}
+                <div className="flex justify-between items-start mb-4 border-b border-gray-800 pb-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
                       #{order._id.substring(0, 6)}
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          order.isPaid
+                            ? "bg-green-500/20 text-green-400"
+                            : "bg-red-500/20 text-red-400"
+                        }`}
+                      >
+                        {order.isPaid ? "PAID" : "UNPAID"}
+                      </span>
                     </h3>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded font-bold uppercase ${
-                        !order.isDelivered
-                          ? "bg-yellow-500/20 text-yellow-400"
-                          : "bg-green-500/20 text-green-400"
-                      }`}
-                    >
-                      {!order.isDelivered ? "Processing" : "Completed"}
+                    <div className="flex items-center gap-2 text-gray-400 text-sm mt-1">
+                      <User size={14} /> {order.user?.name}
+                      <span className="text-gray-600">|</span>
+                      <MapPin size={14} /> {order.shippingAddress?.city}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-primary">
+                      ₹{order.totalPrice}
+                    </p>
+                    <span className="text-xs text-gray-500">
+                      {new Date(order.createdAt).toLocaleTimeString()}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-400">
-                    User: {order.user?.name} • ₹{order.totalPrice}
-                  </p>
+                </div>
+
+                {/* 👇 ENHANCEMENT: Order Items List (Chef needs this!) */}
+                <div className="mb-6 bg-black/40 p-4 rounded-xl">
+                  <h4 className="text-gray-400 text-xs font-bold uppercase mb-2 flex items-center gap-1">
+                    <ShoppingBag size={12} /> Order Items
+                  </h4>
+                  <ul className="space-y-1">
+                    {order.orderItems.map((item, idx) => (
+                      <li key={idx} className="flex justify-between text-sm">
+                        <span className="text-white">
+                          <span className="text-primary font-bold">
+                            {item.qty}x
+                          </span>{" "}
+                          {item.name}
+                        </span>
+                        <span className="text-gray-500">
+                          ₹{item.price * item.qty}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* 👇 ASSIGNMENT SECTION */}
+                <div className="bg-gray-800/30 p-4 rounded-xl border border-gray-700/50">
+                  <h4 className="text-gray-400 text-xs font-bold uppercase mb-2">
+                    Delivery Assignment
+                  </h4>
+
+                  {order.deliveryPartner ? (
+                    <div className="flex items-center gap-3 text-green-400 font-bold bg-green-500/10 p-2 rounded-lg">
+                      <CheckCircle size={18} />
+                      Assigned to: {order.deliveryPartner.name}
+                    </div>
+                  ) : order.isDelivered ? (
+                    <div className="text-gray-500 font-bold">
+                      Order Completed
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <select
+                        className="flex-1 bg-black border border-gray-600 text-white p-2 rounded-lg text-sm focus:border-primary outline-none"
+                        onChange={(e) =>
+                          setSelectedPartner({
+                            ...selectedPartner,
+                            [order._id]: e.target.value,
+                          })
+                        }
+                        value={selectedPartner[order._id] || ""}
+                      >
+                        <option value="">-- Select Delivery Boy --</option>
+                        {deliveryPartners.map((partner) => (
+                          <option key={partner._id} value={partner._id}>
+                            {partner.name}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => handleAssignPartner(order._id)}
+                        className="bg-primary hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm transition-all"
+                      >
+                        Assign
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -219,7 +336,7 @@ const RestaurantOwnerDashboard = () => {
         )}
       </div>
 
-      {/* 👇 ADD ITEM MODAL POPUP */}
+      {/* Add Item Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-50 p-4">
           <div className="bg-gray-900 border border-gray-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl relative animate-fade-in-up">
@@ -229,94 +346,63 @@ const RestaurantOwnerDashboard = () => {
             >
               <X size={24} />
             </button>
-
             <h2 className="text-2xl font-bold mb-6 text-white">
               Add New Menu Item
             </h2>
-
             <form onSubmit={handleAddItem} className="space-y-4">
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">
-                  Item Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-primary focus:outline-none"
-                  placeholder="e.g. Mahararaja Mac Burger"
-                  value={newItem.name}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
+              <input
+                type="text"
+                placeholder="Item Name"
+                className="w-full bg-gray-800 border-gray-700 rounded-lg p-3 text-white"
+                value={newItem.name}
+                onChange={(e) =>
+                  setNewItem({ ...newItem, name: e.target.value })
+                }
+                required
+              />
               <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-gray-400 text-sm mb-1">
-                    Price (₹)
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-primary focus:outline-none"
-                    placeholder="299"
-                    value={newItem.price}
-                    onChange={(e) =>
-                      setNewItem({ ...newItem, price: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-gray-400 text-sm mb-1">
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-primary focus:outline-none"
-                    placeholder="Burger, Pizza..."
-                    value={newItem.category}
-                    onChange={(e) =>
-                      setNewItem({ ...newItem, category: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">
-                  Image URL
-                </label>
                 <input
-                  type="text"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-primary focus:outline-none"
-                  placeholder="https://image-url.com/burger.jpg"
-                  value={newItem.image}
+                  type="number"
+                  placeholder="Price"
+                  className="w-full bg-gray-800 border-gray-700 rounded-lg p-3 text-white"
+                  value={newItem.price}
                   onChange={(e) =>
-                    setNewItem({ ...newItem, image: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-400 text-sm mb-1">
-                  Description
-                </label>
-                <textarea
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white focus:border-primary focus:outline-none h-24"
-                  placeholder="Describe the tasty food..."
-                  value={newItem.description}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, description: e.target.value })
+                    setNewItem({ ...newItem, price: e.target.value })
                   }
                   required
-                ></textarea>
+                />
+                <input
+                  type="text"
+                  placeholder="Category"
+                  className="w-full bg-gray-800 border-gray-700 rounded-lg p-3 text-white"
+                  value={newItem.category}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, category: e.target.value })
+                  }
+                  required
+                />
               </div>
-
+              <input
+                type="text"
+                placeholder="Image URL"
+                className="w-full bg-gray-800 border-gray-700 rounded-lg p-3 text-white"
+                value={newItem.image}
+                onChange={(e) =>
+                  setNewItem({ ...newItem, image: e.target.value })
+                }
+              />
+              <textarea
+                placeholder="Description"
+                className="w-full bg-gray-800 border-gray-700 rounded-lg p-3 text-white h-24"
+                value={newItem.description}
+                onChange={(e) =>
+                  setNewItem({ ...newItem, description: e.target.value })
+                }
+                required
+              ></textarea>
               <button
                 type="submit"
-                className="w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all"
+                className="w-full bg-primary hover:bg-red-700 text-white font-bold py-3 rounded-xl shadow-lg"
               >
                 Create Item
               </button>
