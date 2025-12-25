@@ -42,8 +42,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
           {/* Column 1: Brand Info */}
           <div>
-            <h2 className="text-3xl font-extrabold text-primary mb-4 tracking-tight">
-              SwadKart
+            {/* 👇 FIX: Swad (Primary) + Kart (White) - Same as Navbar */}
+            <h2 className="text-3xl font-extrabold text-primary mb-4 tracking-tight flex items-center">
+              Swad<span className="text-white">Kart</span>
             </h2>
             <p className="text-gray-400 text-sm leading-relaxed mb-6">
               Experience the best food delivery service in town. Fresh, hot, and
@@ -136,10 +137,11 @@ const Footer = () => {
 
         {/* Bottom Section: Copyright */}
         <div className="border-t border-gray-900 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
+          {/* 👇 FIX: Iska color bhi Primary kar diya hai */}
           <p>
             © {new Date().getFullYear()}{" "}
-            <span className="text-white font-bold">SwadKart</span>. All rights
-            reserved.
+            <span className="text-primary font-bold">Swad</span>
+            <span className="text-white">Kart</span>. All rights reserved.
           </p>
           <p className="flex items-center gap-1 mt-2 md:mt-0">
             Made with{" "}

@@ -1,170 +1,151 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../redux/userSlice";
-import { clearCart } from "../redux/cartSlice";
+import { logout } from "../redux/userSlice"; // Path check kar lein
 import {
   ShoppingCart,
   User,
   Menu,
   X,
   LogOut,
-  Package,
   LayoutDashboard,
-  Store, // 👇 New Icon for Restaurant
-  Truck, // 👇 New Icon for Delivery
 } from "lucide-react";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const { cartItems } = useSelector((state) => state.cart);
+  const { userInfo } = useSelector((state) => state.user);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const { cartItems } = useSelector((state) => state.cart);
-  const { userInfo } = useSelector((state) => state.user);
-
   const logoutHandler = () => {
     dispatch(logout());
-    dispatch(clearCart());
+    setIsOpen(false);
     navigate("/login");
-    setShowDropdown(false);
   };
 
+  const closeMenu = () => setIsOpen(false);
+
   return (
-    <nav className="bg-black/80 backdrop-blur-md border-b border-gray-800 fixed w-full z-50 top-0">
+    <nav className="bg-gray-950 text-white border-b border-gray-800 fixed w-full z-50 top-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* 1. LOGO */}
+        <div className="flex justify-between h-16 items-center">
+          {/* 👇 LOGO FIX: 'gap-1' hata diya taaki space na rahe */}
           <Link
             to="/"
-            className="text-3xl font-extrabold text-white tracking-wide"
+            className="text-2xl font-extrabold text-primary tracking-tight flex items-center"
+            onClick={closeMenu}
           >
-            Swad<span className="text-primary">Kart</span>
+            Swad<span className="text-white">Kart</span>
           </Link>
 
-          {/* 2. DESKTOP LINKS */}
-          <div className="hidden md:flex items-center gap-8">
+          {/* Desktop Menu */}
+          <div className="hidden md:flex items-center space-x-8">
             <Link
               to="/"
-              className="text-gray-300 hover:text-primary font-bold transition-all"
+              className="hover:text-primary transition-colors font-medium"
             >
               Home
             </Link>
 
-            {/* Cart Icon */}
-            <Link
-              to="/cart"
-              className="relative text-gray-300 hover:text-white transition-all"
-            >
-              <ShoppingCart size={26} />
+            {userInfo ? (
+              <>
+                {userInfo.role === "admin" && (
+                  <Link
+                    to="/admin/dashboard"
+                    className="hover:text-primary transition-colors font-medium"
+                  >
+                    Admin Panel
+                  </Link>
+                )}
+                {userInfo.role === "restaurant_owner" && (
+                  <Link
+                    to="/restaurant-dashboard"
+                    className="hover:text-primary transition-colors font-medium"
+                  >
+                    Kitchen Dashboard
+                  </Link>
+                )}
+                {userInfo.role === "delivery_partner" && (
+                  <Link
+                    to="/delivery-dashboard"
+                    className="hover:text-primary transition-colors font-medium"
+                  >
+                    Delivery Dashboard
+                  </Link>
+                )}
+                {userInfo.role === "user" && (
+                  <Link
+                    to="/myorders"
+                    className="hover:text-primary transition-colors font-medium"
+                  >
+                    My Orders
+                  </Link>
+                )}
+
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-2 bg-gray-900 px-4 py-2 rounded-full border border-gray-700 hover:border-primary transition-all"
+                >
+                  <User size={18} />
+                  <span className="text-sm font-bold truncate max-w-[100px]">
+                    {userInfo.name.split(" ")[0]}
+                  </span>
+                </Link>
+
+                <button
+                  onClick={logoutHandler}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  title="Logout"
+                >
+                  <LogOut size={20} />
+                </button>
+              </>
+            ) : (
+              <div className="flex gap-4">
+                <Link
+                  to="/login"
+                  className="text-white hover:text-primary font-bold"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="bg-primary hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold transition-all text-sm"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
+
+            <Link to="/cart" className="relative group">
+              <ShoppingCart
+                size={24}
+                className="text-gray-300 group-hover:text-primary transition-colors"
+              />
               {cartItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-primary text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
                   {cartItems.reduce((acc, item) => acc + item.qty, 0)}
                 </span>
               )}
             </Link>
-
-            {/* User Check */}
-            {userInfo ? (
-              <div className="relative">
-                {/* User Name Button */}
-                <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex items-center gap-2 text-white font-bold bg-gray-900 px-4 py-2 rounded-full border border-gray-700 hover:border-primary transition-all"
-                >
-                  <User size={18} className="text-primary" />
-                  {userInfo.name.split(" ")[0]}
-                </button>
-
-                {/* Dropdown Menu */}
-                {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-56 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-2 animate-fade-in-up">
-                    {/* --- ADMIN ROLE --- */}
-                    {userInfo.role === "admin" && (
-                      <Link
-                        to="/admin/dashboard"
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-yellow-400 hover:bg-gray-800"
-                        onClick={() => setShowDropdown(false)}
-                      >
-                        <LayoutDashboard size={16} /> Admin Dashboard
-                      </Link>
-                    )}
-
-                    {/* --- RESTAURANT OWNER ROLE --- */}
-                    {userInfo.role === "restaurant_owner" && (
-                      <Link
-                        to="/restaurant-dashboard"
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-orange-400 hover:bg-gray-800"
-                        onClick={() => setShowDropdown(false)}
-                      >
-                        <Store size={16} /> Restaurant Panel
-                      </Link>
-                    )}
-
-                    {/* --- DELIVERY PARTNER ROLE --- */}
-                    {userInfo.role === "delivery_partner" && (
-                      <Link
-                        to="/delivery-dashboard"
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-blue-400 hover:bg-gray-800"
-                        onClick={() => setShowDropdown(false)}
-                      >
-                        <Truck size={16} /> Delivery Panel
-                      </Link>
-                    )}
-
-                    <div className="border-t border-gray-700 my-1"></div>
-
-                    {/* STANDARD USER LINKS */}
-                    <Link
-                      to="/profile"
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
-                      onClick={() => setShowDropdown(false)}
-                    >
-                      <User size={16} /> Profile
-                    </Link>
-
-                    <Link
-                      to="/myorders"
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
-                      onClick={() => setShowDropdown(false)}
-                    >
-                      <Package size={16} /> My Orders
-                    </Link>
-
-                    <button
-                      onClick={logoutHandler}
-                      className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-gray-800 hover:text-red-300"
-                    >
-                      <LogOut size={16} /> Logout
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                to="/login"
-                className="bg-primary hover:bg-red-600 text-white px-6 py-2 rounded-full font-bold transition-all shadow-lg shadow-primary/20"
-              >
-                Login
-              </Link>
-            )}
           </div>
 
-          {/* 3. MOBILE MENU BUTTON */}
-          <div className="md:hidden flex items-center">
-            <Link to="/cart" className="relative text-gray-300 mr-6">
-              <ShoppingCart size={24} />
+          {/* Mobile Menu Button */}
+          <div className="flex items-center gap-4 md:hidden">
+            <Link to="/cart" className="relative" onClick={closeMenu}>
+              <ShoppingCart size={22} />
               {cartItems.length > 0 && (
                 <span className="absolute -top-2 -right-2 bg-primary text-white text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full">
                   {cartItems.length}
                 </span>
               )}
             </Link>
+
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-300 hover:text-white"
+              className="text-gray-300 hover:text-white focus:outline-none"
             >
               {isOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
@@ -172,79 +153,53 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* 4. MOBILE MENU DROPDOWN */}
+      {/* Mobile Menu Dropdown */}
       {isOpen && (
-        <div className="md:hidden bg-gray-900 border-t border-gray-800 px-4 pt-2 pb-6 space-y-2">
-          <Link
-            to="/"
-            onClick={() => setIsOpen(false)}
-            className="block text-gray-300 hover:text-white py-2 font-bold"
-          >
-            Home
-          </Link>
-
-          {userInfo ? (
-            <>
-              {userInfo.role === "admin" && (
-                <Link
-                  to="/admin/dashboard"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-2 text-yellow-400 py-2 font-bold"
-                >
-                  <LayoutDashboard size={18} /> Admin Dashboard
-                </Link>
-              )}
-
-              {userInfo.role === "restaurant_owner" && (
-                <Link
-                  to="/restaurant-dashboard"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-2 text-orange-400 py-2 font-bold"
-                >
-                  <Store size={18} /> Restaurant Panel
-                </Link>
-              )}
-
-              {userInfo.role === "delivery_partner" && (
-                <Link
-                  to="/delivery-dashboard"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-2 text-blue-400 py-2 font-bold"
-                >
-                  <Truck size={18} /> Delivery Panel
-                </Link>
-              )}
-
-              <Link
-                to="/profile"
-                className="flex items-center gap-2 text-gray-300 hover:text-white py-2 font-bold"
-                onClick={() => setIsOpen(false)}
-              >
-                <User size={18} /> Profile
-              </Link>
-              <Link
-                to="/myorders"
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-2 text-gray-300 hover:text-white py-2 font-bold"
-              >
-                <Package size={18} /> My Orders
-              </Link>
-              <button
-                onClick={logoutHandler}
-                className="flex items-center gap-2 w-full text-left text-red-400 py-2 font-bold"
-              >
-                <LogOut size={18} /> Logout
-              </button>
-            </>
-          ) : (
+        <div className="md:hidden bg-gray-900 border-b border-gray-800 animate-fade-in-down">
+          <div className="px-4 pt-2 pb-6 space-y-2">
             <Link
-              to="/login"
-              onClick={() => setIsOpen(false)}
-              className="block text-primary font-bold py-2"
+              to="/"
+              className="block px-3 py-3 rounded-md text-base font-medium hover:bg-gray-800 hover:text-primary"
+              onClick={closeMenu}
             >
-              Login / Register
+              Home
             </Link>
-          )}
+
+            {userInfo ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="block px-3 py-3 rounded-md text-base font-medium hover:bg-gray-800 hover:text-primary"
+                  onClick={closeMenu}
+                >
+                  Profile ({userInfo.name})
+                </Link>
+                <button
+                  onClick={logoutHandler}
+                  className="w-full text-left block px-3 py-3 rounded-md text-base font-bold text-red-500 hover:bg-gray-800"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <Link
+                  to="/login"
+                  className="text-center py-2 border border-gray-600 rounded-lg font-bold hover:bg-gray-800"
+                  onClick={closeMenu}
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="text-center py-2 bg-primary text-white rounded-lg font-bold hover:bg-red-700"
+                  onClick={closeMenu}
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </nav>
