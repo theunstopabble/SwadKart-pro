@@ -13,23 +13,21 @@ import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-
-// 👇 Missing Import Add Kiya Hai
 import RestaurantMenu from "./pages/RestaurantMenu";
-
 import RestaurantOwnerDashboard from "./pages/RestaurantOwnerDashboard";
 import DeliveryPartnerDashboard from "./pages/DeliveryPartnerDashboard";
+
+// 👇 Import Footer
+import Footer from "./components/Footer";
 
 function App() {
   return (
     <>
       <Navbar />
+
       <Routes>
         <Route path="/" element={<Home />} />
-
-        {/* 👇 YE WALA ROUTE AAPKA MISSING THA, ISLIYE ERROR AA RAHA THA */}
         <Route path="/restaurant/:id" element={<RestaurantMenu />} />
-
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/cart" element={<Cart />} />
@@ -39,7 +37,6 @@ function App() {
         <Route path="/order/:id" element={<OrderDetails />} />
         <Route path="/myorders" element={<MyOrders />} />
         <Route path="/profile" element={<Profile />} />
-
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
         {/* Auth Routes */}
@@ -56,6 +53,9 @@ function App() {
           element={<DeliveryPartnerDashboard />}
         />
       </Routes>
+
+      {/* 👇 YAHAN LAGAYEIN FOOTER (Routes ke baad) */}
+      <Footer />
     </>
   );
 }
