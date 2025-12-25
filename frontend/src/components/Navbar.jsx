@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../redux/userSlice"; // Path check kar lein
+import { logout } from "../redux/userSlice";
 import {
   ShoppingCart,
   User,
@@ -9,6 +9,9 @@ import {
   X,
   LogOut,
   LayoutDashboard,
+  ChefHat,
+  Truck,
+  Package,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -31,7 +34,7 @@ const Navbar = () => {
     <nav className="bg-gray-950 text-white border-b border-gray-800 fixed w-full z-50 top-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          {/* 👇 LOGO FIX: 'gap-1' hata diya taaki space na rahe */}
+          {/* LOGO */}
           <Link
             to="/"
             className="text-2xl font-extrabold text-primary tracking-tight flex items-center"
@@ -40,7 +43,9 @@ const Navbar = () => {
             Swad<span className="text-white">Kart</span>
           </Link>
 
-          {/* Desktop Menu */}
+          {/* ================================================= */}
+          {/* 🖥️ DESKTOP MENU (Hidden on Mobile) */}
+          {/* ================================================= */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
               to="/"
@@ -54,23 +59,23 @@ const Navbar = () => {
                 {userInfo.role === "admin" && (
                   <Link
                     to="/admin/dashboard"
-                    className="hover:text-primary transition-colors font-medium"
+                    className="hover:text-primary transition-colors font-medium text-yellow-400"
                   >
                     Admin Panel
                   </Link>
                 )}
                 {userInfo.role === "restaurant_owner" && (
                   <Link
-                    to="/restaurant-dashboard"
-                    className="hover:text-primary transition-colors font-medium"
+                    to="/restaurant/dashboard"
+                    className="hover:text-primary transition-colors font-medium text-green-400"
                   >
                     Kitchen Dashboard
                   </Link>
                 )}
                 {userInfo.role === "delivery_partner" && (
                   <Link
-                    to="/delivery-dashboard"
-                    className="hover:text-primary transition-colors font-medium"
+                    to="/delivery/dashboard"
+                    className="hover:text-primary transition-colors font-medium text-blue-400"
                   >
                     Delivery Dashboard
                   </Link>
@@ -142,7 +147,6 @@ const Navbar = () => {
                 </span>
               )}
             </Link>
-
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-gray-300 hover:text-white focus:outline-none"
@@ -153,7 +157,9 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
+      {/* ================================================= */}
+      {/* 📱 MOBILE MENU DROPDOWN (Fixed Here) */}
+      {/* ================================================= */}
       {isOpen && (
         <div className="md:hidden bg-gray-900 border-b border-gray-800 animate-fade-in-down">
           <div className="px-4 pt-2 pb-6 space-y-2">
@@ -167,6 +173,47 @@ const Navbar = () => {
 
             {userInfo ? (
               <>
+                {/* 👇 FIX: Added Role Links for Mobile */}
+                {userInfo.role === "admin" && (
+                  <Link
+                    to="/admin/dashboard"
+                    className="flex items-center gap-2 px-3 py-3 rounded-md text-base font-bold text-yellow-400 hover:bg-gray-800"
+                    onClick={closeMenu}
+                  >
+                    <LayoutDashboard size={18} /> Admin Panel
+                  </Link>
+                )}
+
+                {userInfo.role === "restaurant_owner" && (
+                  <Link
+                    to="/restaurant/dashboard"
+                    className="flex items-center gap-2 px-3 py-3 rounded-md text-base font-bold text-green-400 hover:bg-gray-800"
+                    onClick={closeMenu}
+                  >
+                    <ChefHat size={18} /> Kitchen Dashboard
+                  </Link>
+                )}
+
+                {userInfo.role === "delivery_partner" && (
+                  <Link
+                    to="/delivery/dashboard"
+                    className="flex items-center gap-2 px-3 py-3 rounded-md text-base font-bold text-blue-400 hover:bg-gray-800"
+                    onClick={closeMenu}
+                  >
+                    <Truck size={18} /> Delivery Dashboard
+                  </Link>
+                )}
+
+                {userInfo.role === "user" && (
+                  <Link
+                    to="/myorders"
+                    className="flex items-center gap-2 px-3 py-3 rounded-md text-base font-medium text-gray-300 hover:bg-gray-800"
+                    onClick={closeMenu}
+                  >
+                    <Package size={18} /> My Orders
+                  </Link>
+                )}
+
                 <Link
                   to="/profile"
                   className="block px-3 py-3 rounded-md text-base font-medium hover:bg-gray-800 hover:text-primary"
@@ -174,11 +221,12 @@ const Navbar = () => {
                 >
                   Profile ({userInfo.name})
                 </Link>
+
                 <button
                   onClick={logoutHandler}
-                  className="w-full text-left block px-3 py-3 rounded-md text-base font-bold text-red-500 hover:bg-gray-800"
+                  className="w-full flex items-center gap-2 px-3 py-3 rounded-md text-base font-bold text-red-500 hover:bg-gray-800"
                 >
-                  Logout
+                  <LogOut size={18} /> Logout
                 </button>
               </>
             ) : (
