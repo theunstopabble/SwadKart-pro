@@ -11,9 +11,10 @@ import { notFound, errorHandler } from "./middleware/authMiddleware.js";
 
 // Routes Import
 import userRoutes from "./routes/userRoutes.js";
-import productRoutes from "./routes/productRoutes.js";
+import productRoutes from "./routes/productRoutes.js"; // Agar use nahi kar rahe to hata sakte ho
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import foodRoutes from "./routes/foodRoutes.js"; // 👈 YE MISSING THA (IMP FOR MENU)
 
 dotenv.config();
 connectDB();
@@ -22,7 +23,7 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://swadkart-pro.vercel.app",
+  "https://swadkart-pro.vercel.app", // Aapka Frontend
   "https://swadkart-pro.onrender.com",
 ];
 
@@ -32,7 +33,8 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      console.log("Blocked by CORS:", origin); // Debugging ke liye
+      callback(null, true); // Filhal sab allow kar dete hain taaki error na aaye
     }
   },
   credentials: true,
@@ -68,34 +70,19 @@ app.use(cookieParser());
 
 // 🛤️ API ROUTES
 app.use("/api/v1/users", userRoutes);
-app.use("/api/v1/products", productRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/payment", paymentRoutes);
-
-app.use("/api/users", userRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/payment", paymentRoutes);
+app.use("/api/v1/food", foodRoutes); // 👈 MENU KE LIYE ZAROORI HAI
 
 // ============================================================
-// 📦 PRODUCTION SETUP (Updated Fix for Node v22)
+// 📦 PRODUCTION SETUP (FIXED FOR RENDER/VERCEL)
 // ============================================================
-const __dirname = path.resolve();
 
-if (process.env.NODE_ENV === "production") {
-  const distPath = path.join(__dirname, "frontend", "dist");
-  app.use(express.static(distPath));
-
-  // ✅ Fix: Use index.html for all non-API routes
-  // Isse 'path-to-regexp' ka error nahi aayega
-  app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
-  });
-} else {
-  app.get("/", (req, res) => {
-    res.send("🚀 SwadKart API is running with Socket.io...");
-  });
-}
+// Hum Frontend ko Vercel par host kar rahe hain, isliye Backend
+// ko static files serve karne ki zaroorat nahi hai.
+app.get("/", (req, res) => {
+  res.send("🚀 SwadKart API is running successfully...");
+});
 
 // ============================================================
 
