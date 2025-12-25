@@ -1,21 +1,28 @@
-import Product from "../models/productModel.js"; // .js extension zaroori hai
+import Product from "../models/productModel.js";
 
 // ============================================================
-// 👇 PUBLIC ROUTES
+// 👇 PUBLIC ROUTES (Sabke liye open)
 // ============================================================
 
+// @desc    Fetch all products (Search & Filter)
+// @route   GET /api/v1/products
 export const getProducts = async (req, res) => {
   try {
     const keyword = req.query.keyword
       ? { name: { $regex: req.query.keyword, $options: "i" } }
       : {};
+
     const products = await Product.find({ ...keyword });
+
+    // Web frontend ke liye hum object bhejte hain, ye sahi hai
     res.json({ products });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// @desc    Fetch single product by ID
+// @route   GET /api/v1/products/:id
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -30,18 +37,23 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// 👇 Restaurant ID ke base pe menu fetch karna
+// 👇👇 IMPORTANT FIX FOR MOBILE APP 👇👇
+// @desc    Fetch products by Restaurant ID
+// @route   GET /api/v1/products/restaurant/:id
 export const getProductsByRestaurant = async (req, res) => {
   try {
     console.log("📥 Fetching Menu for Restaurant ID:", req.params.id);
 
+    // Restaurant ID ya User ID match hone par items lao
     const products = await Product.find({
       $or: [{ restaurant: req.params.id }, { user: req.params.id }],
     });
 
     console.log(`✅ Found ${products.length} items for this shop.`);
 
-    res.json({ products });
+    // 🚨 FINAL FIX: Mobile App FlatList ko ARRAY chahiye, Object nahi.
+    // Isliye curly braces {} hata diye hain.
+    res.json(products);
   } catch (error) {
     console.error("❌ Error fetching menu:", error.message);
     res.status(500).json({ message: error.message });
@@ -49,9 +61,11 @@ export const getProductsByRestaurant = async (req, res) => {
 };
 
 // ============================================================
-// 👇 ADMIN / OWNER ROUTES
+// 👇 PROTECTED ROUTES (Admin / Restaurant Owner Only)
 // ============================================================
 
+// @desc    Create a product
+// @route   POST /api/v1/products
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -64,6 +78,8 @@ export const createProduct = async (req, res) => {
       restaurantId,
     } = req.body;
 
+    // Agar Admin bana raha hai to restaurantId lega,
+    // Agar Owner bana raha hai to khud ki ID use karega.
     const ownerId = restaurantId || req.user._id;
 
     if (!ownerId) {
@@ -93,9 +109,12 @@ export const createProduct = async (req, res) => {
   }
 };
 
+// @desc    Delete a product
+// @route   DELETE /api/v1/products/:id
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
+
     if (product) {
       await product.deleteOne();
       res.json({ message: "Product removed" });
@@ -107,6 +126,8 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
+// @desc    Update a product
+// @route   PUT /api/v1/products/:id
 export const updateProduct = async (req, res) => {
   try {
     const { name, price, description, image, category, countInStock } =

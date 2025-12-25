@@ -1,32 +1,47 @@
 import express from "express";
 const router = express.Router();
 
-// 👇 .js एक्सटेंशन जोड़ना बहुत ज़रूरी है
+// 👇 Controller functions import
 import {
   getProducts,
   getProductById,
-  deleteProduct,
   createProduct,
   updateProduct,
+  deleteProduct,
   getProductsByRestaurant,
 } from "../controllers/productController.js";
 
+// 👇 Auth Middleware import
+// (Make sure aapke authMiddleware.js me 'authorizeRoles' function ho,
+// agar nahi hai to sirf 'protect, admin' use karein)
 import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
 
-// Public: Sab dekh sakte hain
+// ============================================================
+// 👇 PUBLIC ROUTES (Bina Login ke access ho sakte hain)
+// ============================================================
+
+// 1. Saare products dekhna (Search ke sath)
 router.route("/").get(getProducts);
 
-// Public: Kisi specific restaurant ka menu dekhna
+// 2. Kisi specific Restaurant ka Menu dekhna (Mobile App ke liye Zaroori) 🟢
 router.route("/restaurant/:id").get(getProductsByRestaurant);
 
-// Sirf ADMIN hi naya item bana sakta hai
-router.route("/").post(protect, authorizeRoles("admin"), createProduct);
+// 3. Single Product ki details dekhna
+router.route("/:id").get(getProductById);
 
+// ============================================================
+// 👇 PROTECTED ROUTES (Sirf Admin ya Restaurant Owner ke liye)
+// ============================================================
+
+// 1. Naya Khana (Product) Banana
+router
+  .route("/")
+  .post(protect, authorizeRoles("admin", "restaurant_owner"), createProduct);
+
+// 2. Product Update ya Delete karna
 router
   .route("/:id")
-  .get(getProductById)
-  .delete(protect, authorizeRoles("admin"), deleteProduct)
-  .put(protect, authorizeRoles("admin"), updateProduct);
+  .put(protect, authorizeRoles("admin", "restaurant_owner"), updateProduct)
+  .delete(protect, authorizeRoles("admin", "restaurant_owner"), deleteProduct);
 
-// 👇 CHANGE: module.exports की जगह export default
 export default router;
