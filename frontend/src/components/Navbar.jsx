@@ -66,7 +66,7 @@ const Navbar = () => {
                 )}
                 {userInfo.role === "restaurant_owner" && (
                   <Link
-                    to="/restaurant/dashboard"
+                    to="/restaurant-dashboard"
                     className="hover:text-primary transition-colors font-medium text-green-400"
                   >
                     Kitchen Dashboard
