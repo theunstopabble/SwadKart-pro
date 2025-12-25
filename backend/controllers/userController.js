@@ -8,13 +8,15 @@ import sendEmail from "../utils/sendEmail.js";
 // =================================================================
 
 // @desc    Register a new user
+// @route   POST /api/v1/users
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password, phone, role } = req.body;
     const userExists = await User.findOne({ email });
 
-    if (userExists)
+    if (userExists) {
       return res.status(400).json({ message: "User already exists" });
+    }
 
     const user = await User.create({
       name,
@@ -28,10 +30,11 @@ export const registerUser = async (req, res) => {
       try {
         await sendEmail({
           email: user.email,
-          subject: "Welcome!",
-          message: `Hi ${user.name}, Welcome to SwadKart!`,
+          subject: "Welcome to SwadKart!",
+          message: `Hi ${user.name}, Welcome to SwadKart! Your account has been created successfully.`,
         });
       } catch (err) {
+        // Silent fail for email in production, or log to error monitoring service
         console.error("Email error:", err.message);
       }
 
@@ -51,7 +54,8 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// @desc    Login User
+// @desc    Login User & Get Token
+// @route   POST /api/v1/users/login
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -77,6 +81,7 @@ export const loginUser = async (req, res) => {
 };
 
 // @desc    Get User Profile
+// @route   GET /api/v1/users/profile
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -99,7 +104,8 @@ export const getUserProfile = async (req, res) => {
 };
 
 // @desc    Update User Profile
-export const updateUserProfile = async (req, res) => {
+// @route   PUT /api/v1/users/profile
+export const updateUserProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
 
@@ -110,7 +116,8 @@ export const updateUserProfile = async (req, res) => {
       user.phone = req.body.phone || user.phone;
       user.description = req.body.description || user.description;
 
-      if (req.body.password) {
+      // Only update password if provided and not empty
+      if (req.body.password && req.body.password.trim() !== "") {
         user.password = req.body.password;
       }
 
@@ -138,6 +145,7 @@ export const updateUserProfile = async (req, res) => {
 // 🏙️ RESTAURANT PUBLIC DATA
 // =================================================================
 
+// @desc    Get all restaurants for public view
 export const getAllRestaurantsPublic = async (req, res) => {
   try {
     const restaurants = await User.find({ role: "restaurant_owner" }).select(
@@ -149,6 +157,7 @@ export const getAllRestaurantsPublic = async (req, res) => {
   }
 };
 
+// @desc    Get restaurant details by ID
 export const getRestaurantById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -166,6 +175,7 @@ export const getRestaurantById = async (req, res) => {
 // 👑 ADMIN FUNCTIONS
 // =================================================================
 
+// @desc    Create a dummy restaurant (Admin only)
 export const createDummyRestaurant = async (req, res) => {
   try {
     const { name, image } = req.body;
@@ -191,6 +201,7 @@ export const createDummyRestaurant = async (req, res) => {
   }
 };
 
+// @desc    Get all restaurants (Admin only)
 export const getAllRestaurants = async (req, res) => {
   try {
     const restaurants = await User.find({ role: "restaurant_owner" }).select(
@@ -202,6 +213,7 @@ export const getAllRestaurants = async (req, res) => {
   }
 };
 
+// @desc    Create restaurant account (Admin only)
 export const createRestaurantByAdmin = async (req, res) => {
   try {
     const { name, email, password, image } = req.body;
@@ -222,6 +234,7 @@ export const createRestaurantByAdmin = async (req, res) => {
   }
 };
 
+// @desc    Update restaurant info (Admin only)
 export const updateUserByAdmin = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -242,6 +255,7 @@ export const updateUserByAdmin = async (req, res) => {
 // 🔑 PASSWORD RESET
 // =================================================================
 
+// @desc    Send password reset email
 export const forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
@@ -270,19 +284,21 @@ export const forgotPassword = async (req, res) => {
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
-      return res.status(500).json({ message: "Email failed" });
+      return res.status(500).json({ message: "Email failed to send" });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// @desc    Reset password using token
 export const resetPassword = async (req, res) => {
   try {
     const resetPasswordToken = crypto
       .createHash("sha256")
       .update(req.params.token)
       .digest("hex");
+
     const user = await User.findOne({
       resetPasswordToken,
       resetPasswordExpire: { $gt: Date.now() },
@@ -290,13 +306,15 @@ export const resetPassword = async (req, res) => {
 
     if (!user)
       return res.status(400).json({ message: "Invalid or Expired Token" });
-    if (req.body.password !== req.body.confirmPassword)
+    if (req.body.password !== req.body.confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
+    }
 
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
+
     res
       .status(200)
       .json({ success: true, message: "Password Updated Successfully" });
@@ -305,6 +323,11 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// =================================================================
+// 🛵 DELIVERY PARTNERS
+// =================================================================
+
+// @desc    Get all delivery partners
 export const getDeliveryPartners = async (req, res) => {
   try {
     const partners = await User.find({ role: "delivery_partner" }).select(
@@ -316,6 +339,7 @@ export const getDeliveryPartners = async (req, res) => {
   }
 };
 
+// Placeholder for database seeding
 export const seedDatabase = async (req, res) => {
   try {
     res.json({ message: "Seed function placeholder" });

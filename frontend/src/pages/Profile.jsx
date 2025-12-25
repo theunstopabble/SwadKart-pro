@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { User, Mail, Lock, Save, Camera, FileText } from "lucide-react";
-import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
+import { User, Mail, Lock, Save, FileText } from "lucide-react";
+import { updateUserProfile } from "../redux/userSlice"; // 👈 Action Import Kiya
 
 const Profile = () => {
   const [name, setName] = useState("");
@@ -9,10 +9,16 @@ const Profile = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [description, setDescription] = useState("");
-  const [message, setMessage] = useState(null);
+  const [localMsg, setLocalMsg] = useState(null); // Local Error/Success Message
 
-  const { userInfo } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
 
+  // 👇 Redux se UserInfo aur States nikalo
+  const { userInfo, loading, error, success } = useSelector(
+    (state) => state.user
+  );
+
+  // 1️⃣ Jab bhi Redux ka UserInfo update ho, Input fields me naya data bharo
   useEffect(() => {
     if (userInfo) {
       setName(userInfo.name);
@@ -21,36 +27,33 @@ const Profile = () => {
     }
   }, [userInfo]);
 
-  const submitHandler = async (e) => {
+  // 2️⃣ Success/Error Messages handle karne ke liye
+  useEffect(() => {
+    if (success) {
+      setLocalMsg("Profile Updated Successfully! 🎉");
+      // Password fields clear kar do
+      setPassword("");
+      setConfirmPassword("");
+
+      // 3 second baad message hata do
+      setTimeout(() => setLocalMsg(null), 3000);
+    }
+    if (error) {
+      setLocalMsg(error);
+    }
+  }, [success, error]);
+
+  const submitHandler = (e) => {
     e.preventDefault();
+    setLocalMsg(null);
+
     if (password !== confirmPassword) {
-      setMessage("Passwords do not match");
+      setLocalMsg("Passwords do not match ❌");
       return;
     }
 
-    try {
-      // 👇 FIX: Use BASE_URL instead of localhost
-      const res = await fetch(`${BASE_URL}/api/v1/users/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-        body: JSON.stringify({ name, email, password, description }),
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        alert("Profile Updated Successfully! 🎉");
-        // Optional: Refresh page to see changes or dispatch Redux action
-        // window.location.reload();
-      } else {
-        alert(data.message || "Update Failed");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Server Error. Check console.");
-    }
+    // 👇 MAGIC: Fetch hata diya, ab seedha Dispatch karenge
+    dispatch(updateUserProfile({ name, email, password, description }));
   };
 
   return (
@@ -61,9 +64,16 @@ const Profile = () => {
           <h1 className="text-3xl font-bold">User Profile</h1>
         </div>
 
-        {message && (
-          <div className="bg-red-500/20 text-red-400 p-4 rounded-lg mb-6 border border-red-500/50">
-            {message}
+        {/* 👇 Messages Display Area */}
+        {localMsg && (
+          <div
+            className={`p-4 rounded-lg mb-6 border ${
+              localMsg.includes("Success")
+                ? "bg-green-500/20 text-green-400 border-green-500/50"
+                : "bg-red-500/20 text-red-400 border-red-500/50"
+            }`}
+          >
+            {localMsg}
           </div>
         )}
 
@@ -84,7 +94,7 @@ const Profile = () => {
                   />
                   <input
                     type="text"
-                    className="w-full bg-black border border-gray-700 text-white rounded-lg pl-10 pr-4 py-3"
+                    className="w-full bg-black border border-gray-700 text-white rounded-lg pl-10 pr-4 py-3 focus:border-primary focus:outline-none"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
@@ -102,7 +112,7 @@ const Profile = () => {
                   />
                   <input
                     type="email"
-                    className="w-full bg-black border border-gray-700 text-white rounded-lg pl-10 pr-4 py-3"
+                    className="w-full bg-black border border-gray-700 text-white rounded-lg pl-10 pr-4 py-3 focus:border-primary focus:outline-none"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
@@ -139,7 +149,7 @@ const Profile = () => {
                   />
                   <input
                     type="password"
-                    className="w-full bg-black border border-gray-700 text-white rounded-lg pl-10 pr-4 py-3"
+                    className="w-full bg-black border border-gray-700 text-white rounded-lg pl-10 pr-4 py-3 focus:border-primary focus:outline-none"
                     placeholder="Enter new password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -158,7 +168,7 @@ const Profile = () => {
                   />
                   <input
                     type="password"
-                    className="w-full bg-black border border-gray-700 text-white rounded-lg pl-10 pr-4 py-3"
+                    className="w-full bg-black border border-gray-700 text-white rounded-lg pl-10 pr-4 py-3 focus:border-primary focus:outline-none"
                     placeholder="Confirm new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -168,9 +178,16 @@ const Profile = () => {
 
               <button
                 type="submit"
-                className="bg-primary hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg flex items-center gap-2 transition-all"
+                disabled={loading}
+                className="bg-primary hover:bg-red-600 text-white font-bold py-3 px-8 rounded-lg flex items-center gap-2 transition-all disabled:opacity-50"
               >
-                <Save size={20} /> Update Profile
+                {loading ? (
+                  "Updating..."
+                ) : (
+                  <>
+                    <Save size={20} /> Update Profile
+                  </>
+                )}
               </button>
             </form>
           </div>
@@ -186,11 +203,12 @@ const Profile = () => {
                     className="w-full h-full rounded-full object-cover"
                   />
                 ) : (
-                  name?.charAt(0) || "U"
+                  // Safe check for name
+                  userInfo?.name?.charAt(0) || "U"
                 )}
               </div>
-              <h2 className="text-2xl font-bold">{name}</h2>
-              <p className="text-gray-400 text-sm mb-4">{email}</p>
+              <h2 className="text-2xl font-bold">{userInfo?.name}</h2>
+              <p className="text-gray-400 text-sm mb-4">{userInfo?.email}</p>
               <span className="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-500/20">
                 {userInfo?.role === "restaurant_owner"
                   ? "Restaurant Owner"

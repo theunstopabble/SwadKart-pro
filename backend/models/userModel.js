@@ -7,46 +7,43 @@ const userSchema = mongoose.Schema(
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    image: { type: String },
     phone: { type: String },
-
-    // Description Field
-    description: { type: String, default: "" },
-
     role: { type: String, required: true, default: "user" },
+    image: { type: String },
+    description: { type: String },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },
   { timestamps: true }
 );
 
-// Match Password
+// Password matching method
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// Password Hashing Middleware
-userSchema.pre("save", async function (next) {
+// 🔥 FIXED: Remove 'next' parameter completely
+userSchema.pre("save", async function () {
+  // Agar password modify nahi hua, toh yahin se wapas laut jao (return)
   if (!this.isModified("password")) {
-    next();
+    return;
   }
 
+  // Agar modify hua hai, toh hash karo
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Generate Reset Token
+// Reset password token generation
 userSchema.methods.getResetPasswordToken = function () {
   const resetToken = crypto.randomBytes(20).toString("hex");
   this.resetPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-  this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 mins
   return resetToken;
 };
 
 const User = mongoose.model("User", userSchema);
-
-// 👇 CHANGE: module.exports hata kar export default lagaya
 export default User;

@@ -9,7 +9,22 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "masked-icon.svg"],
       devOptions: {
-        enabled: true, // Development mode me bhi PWA test karne ke liye
+        enabled: true,
+      },
+      // ✅ Fix: Workbox settings to ignore API and Socket calls
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        navigateFallbackDenylist: [/^\/api/, /^\/socket.io/],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/api"),
+            handler: "NetworkOnly", // API caching block
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/socket.io"),
+            handler: "NetworkOnly", // Socket caching block
+          },
+        ],
       },
       manifest: {
         name: "SwadKart - Food Delivery",
@@ -36,9 +51,13 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: "http://localhost:8000", // 👈 Make sure port matches your backend (8000)
         changeOrigin: true,
         secure: false,
+      },
+      "/socket.io": {
+        target: "http://localhost:8000",
+        ws: true, // Enable WebSocket proxy
       },
     },
   },
