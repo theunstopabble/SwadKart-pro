@@ -11,10 +11,11 @@ import { notFound, errorHandler } from "./middleware/authMiddleware.js";
 
 // Routes Import
 import userRoutes from "./routes/userRoutes.js";
-import productRoutes from "./routes/productRoutes.js"; // Agar use nahi kar rahe to hata sakte ho
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
-import foodRoutes from "./routes/foodRoutes.js"; // 👈 YE MISSING THA (IMP FOR MENU)
+
+// 👇 YAHAN DHYAN DO: Hum 'productRoutes' use karenge (FoodRoutes ki jagah)
+import productRoutes from "./routes/productRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -23,8 +24,9 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://swadkart-pro.vercel.app", // Aapka Frontend
+  "https://swadkart-pro.vercel.app",
   "https://swadkart-pro.onrender.com",
+  "https://swadkart-backend.onrender.com", // Safety ke liye ye bhi add kar lo
 ];
 
 const corsOptions = {
@@ -33,8 +35,7 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.log("Blocked by CORS:", origin); // Debugging ke liye
-      callback(null, true); // Filhal sab allow kar dete hain taaki error na aaye
+      callback(null, true); // Filhal sab allow (Dev mode fix)
     }
   },
   credentials: true,
@@ -57,7 +58,6 @@ io.on("connection", (socket) => {
   console.log("⚡ New Client Connected:", socket.id);
   socket.on("joinOrder", (orderId) => {
     socket.join(orderId);
-    console.log(`👤 User joined order room: ${orderId}`);
   });
   socket.on("disconnect", () => {
     console.log("❌ Client Disconnected:", socket.id);
@@ -69,21 +69,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // 🛤️ API ROUTES
+
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/payment", paymentRoutes);
-app.use("/api/v1/food", foodRoutes); // 👈 MENU KE LIYE ZAROORI HAI
+
+// 👇 MAGIC LINE: Mobile App '/food' mangega, hum use 'productRoutes' denge
+app.use("/api/v1/food", productRoutes);
+// Agar website '/products' mange to bhi wahi file chalegi
+app.use("/api/v1/products", productRoutes);
 
 // ============================================================
-// 📦 PRODUCTION SETUP (FIXED FOR RENDER/VERCEL)
+// 📦 PRODUCTION SETUP
 // ============================================================
-
-// Hum Frontend ko Vercel par host kar rahe hain, isliye Backend
-// ko static files serve karne ki zaroorat nahi hai.
 app.get("/", (req, res) => {
   res.send("🚀 SwadKart API is running successfully...");
 });
-
 // ============================================================
 
 app.use(notFound);
@@ -93,5 +94,4 @@ const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Socket.io is ready for real-time tracking`);
 });
