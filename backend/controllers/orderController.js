@@ -1,13 +1,11 @@
-const Order = require("../models/orderModel");
+import Order from "../models/orderModel.js";
 
 // =================================================================
 // 🛒 ORDER CREATION & FETCHING
 // =================================================================
 
 // @desc    Create new order
-// @route   POST /api/v1/orders
-// @access  Private
-const addOrderItems = async (req, res) => {
+export const addOrderItems = async (req, res) => {
   const {
     orderItems,
     shippingAddress,
@@ -23,7 +21,11 @@ const addOrderItems = async (req, res) => {
     throw new Error("No order items");
   } else {
     const order = new Order({
-      orderItems,
+      orderItems: orderItems.map((x) => ({
+        ...x,
+        product: x.product,
+        _id: undefined,
+      })),
       user: req.user._id,
       shippingAddress,
       paymentMethod,
@@ -39,28 +41,21 @@ const addOrderItems = async (req, res) => {
 };
 
 // @desc    Get order by ID
-// @route   GET /api/v1/orders/:id
-// @access  Private
-const getOrderById = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id)
-      .populate("user", "name email")
-      .populate("deliveryPartner", "name phone");
+export const getOrderById = async (req, res) => {
+  const order = await Order.findById(req.params.id)
+    .populate("user", "name email")
+    .populate("deliveryPartner", "name phone");
 
-    if (order) {
-      res.json(order);
-    } else {
-      res.status(404).json({ message: "Order not found" });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (order) {
+    res.json(order);
+  } else {
+    res.status(404);
+    throw new Error("Order not found");
   }
 };
 
 // @desc    Get logged in user orders
-// @route   GET /api/v1/orders/myorders
-// @access  Private
-const getMyOrders = async (req, res) => {
+export const getMyOrders = async (req, res) => {
   const orders = await Order.find({ user: req.user._id }).sort({
     createdAt: -1,
   });
@@ -68,13 +63,38 @@ const getMyOrders = async (req, res) => {
 };
 
 // =================================================================
-// 🚚 STATUS UPDATES & ASSIGNMENT
+// 🚚 STATUS UPDATES & REAL-TIME SOCKETS ⚡
 // =================================================================
 
+// @desc    Update order status (General: Cooking, On Way, etc.)
+export const updateOrderStatus = async (req, res) => {
+  const { status } = req.body;
+  const order = await Order.findById(req.params.id);
+
+  if (order) {
+    order.orderStatus = status;
+
+    if (status === "Delivered") {
+      order.isDelivered = true;
+      order.deliveredAt = Date.now();
+    }
+
+    const updatedOrder = await order.save();
+
+    // 🔥 SOCKET: Specific Order Room mein update bhejo
+    req.io.to(order._id.toString()).emit("orderUpdated", updatedOrder);
+    // Backup: Global update (agar room join nahi kiya tab bhi dikhe)
+    req.io.emit("globalOrderUpdate", updatedOrder);
+
+    res.json(updatedOrder);
+  } else {
+    res.status(404);
+    throw new Error("Order not found");
+  }
+};
+
 // @desc    Update order to paid
-// @route   PUT /api/v1/orders/:id/pay
-// @access  Private
-const updateOrderToPaid = async (req, res) => {
+export const updateOrderToPaid = async (req, res) => {
   const order = await Order.findById(req.params.id);
 
   if (order) {
@@ -88,6 +108,8 @@ const updateOrderToPaid = async (req, res) => {
     };
 
     const updatedOrder = await order.save();
+    req.io.to(order._id.toString()).emit("orderUpdated", updatedOrder);
+
     res.json(updatedOrder);
   } else {
     res.status(404);
@@ -95,17 +117,18 @@ const updateOrderToPaid = async (req, res) => {
   }
 };
 
-// @desc    Update order to delivered (Used by Delivery Partner)
-// @route   PUT /api/v1/orders/:id/deliver
-// @access  Private (Admin/Delivery)
-const updateOrderToDelivered = async (req, res) => {
+// @desc    Update order to delivered
+export const updateOrderToDelivered = async (req, res) => {
   const order = await Order.findById(req.params.id);
 
   if (order) {
     order.isDelivered = true;
     order.deliveredAt = Date.now();
+    order.orderStatus = "Delivered";
 
     const updatedOrder = await order.save();
+    req.io.to(order._id.toString()).emit("orderUpdated", updatedOrder);
+
     res.json(updatedOrder);
   } else {
     res.status(404);
@@ -114,21 +137,17 @@ const updateOrderToDelivered = async (req, res) => {
 };
 
 // @desc    Assign Delivery Partner
-// @route   PUT /api/v1/orders/:id/assign
-// @access  Private (Admin Only)
-const assignDeliveryPartner = async (req, res) => {
-  // 👇 FIX: Use 'deliveryPartnerId' to match Frontend
+export const assignDeliveryPartner = async (req, res) => {
   const { deliveryPartnerId } = req.body;
-
   const order = await Order.findById(req.params.id);
 
   if (order) {
     order.deliveryPartner = deliveryPartnerId;
-
-    // Optional: Agar partner assign ho gaya, toh status update kar sakte hain
-    // order.orderStatus = "Out for Delivery";
+    order.orderStatus = "Out for Delivery";
 
     const updatedOrder = await order.save();
+    req.io.to(order._id.toString()).emit("orderUpdated", updatedOrder);
+
     res.json(updatedOrder);
   } else {
     res.status(404);
@@ -140,23 +159,7 @@ const assignDeliveryPartner = async (req, res) => {
 // 👑 ADMIN & PARTNER ROUTES
 // =================================================================
 
-// @desc    Get All Orders (Admin Only)
-// @route   GET /api/v1/orders/admin/all
-// @access  Private (Admin)
-const getAllOrdersAdmin = async (req, res) => {
-  try {
-    const orders = await Order.find({})
-      .populate("user", "id name")
-      .populate("deliveryPartner", "name")
-      .sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @desc    Get All Orders (Generic - for flexibility)
-const getOrders = async (req, res) => {
+export const getAllOrdersAdmin = async (req, res) => {
   const orders = await Order.find({})
     .populate("user", "id name")
     .populate("deliveryPartner", "name")
@@ -164,30 +167,17 @@ const getOrders = async (req, res) => {
   res.json(orders);
 };
 
-// @desc    Get orders assigned to logged in Delivery Partner
-// @route   GET /api/v1/orders/my-deliveries
-// @access  Private (Delivery Partner)
-const getMyDeliveryOrders = async (req, res) => {
-  try {
-    // Find orders where 'deliveryPartner' matches the logged-in user's ID
-    const orders = await Order.find({ deliveryPartner: req.user._id })
-      .populate("user", "name email phone") // User info for delivery contact
-      .sort({ createdAt: -1 });
-
-    res.json(orders);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+export const getOrders = async (req, res) => {
+  const orders = await Order.find({})
+    .populate("user", "id name")
+    .populate("deliveryPartner", "name")
+    .sort({ createdAt: -1 });
+  res.json(orders);
 };
 
-module.exports = {
-  addOrderItems,
-  getOrderById,
-  updateOrderToPaid,
-  updateOrderToDelivered,
-  getMyOrders,
-  getOrders,
-  getAllOrdersAdmin,
-  assignDeliveryPartner, // 👈 Exported for Route
-  getMyDeliveryOrders, // 👈 Exported for Route
+export const getMyDeliveryOrders = async (req, res) => {
+  const orders = await Order.find({ deliveryPartner: req.user._id })
+    .populate("user", "name email phone")
+    .sort({ createdAt: -1 });
+  res.json(orders);
 };

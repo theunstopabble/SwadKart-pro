@@ -1,14 +1,14 @@
-const crypto = require("crypto");
-const User = require("../models/userModel");
-const generateToken = require("../utils/generateToken");
-const sendEmail = require("../utils/sendEmail");
+import crypto from "crypto";
+import User from "../models/userModel.js";
+import generateToken from "../utils/generateToken.js";
+import sendEmail from "../utils/sendEmail.js";
 
 // =================================================================
 // 🔐 AUTHENTICATION & USER PROFILE
 // =================================================================
 
 // @desc    Register a new user
-const registerUser = async (req, res) => {
+export const registerUser = async (req, res) => {
   try {
     const { name, email, password, phone, role } = req.body;
     const userExists = await User.findOne({ email });
@@ -52,7 +52,7 @@ const registerUser = async (req, res) => {
 };
 
 // @desc    Login User
-const loginUser = async (req, res) => {
+export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
@@ -63,7 +63,7 @@ const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         phone: user.phone,
-        description: user.description, // Return description
+        description: user.description,
         image: user.image,
         role: user.role,
         token: generateToken(user._id),
@@ -77,7 +77,7 @@ const loginUser = async (req, res) => {
 };
 
 // @desc    Get User Profile
-const getUserProfile = async (req, res) => {
+export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     if (user) {
@@ -99,7 +99,7 @@ const getUserProfile = async (req, res) => {
 };
 
 // @desc    Update User Profile
-const updateUserProfile = async (req, res) => {
+export const updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
 
@@ -135,11 +135,10 @@ const updateUserProfile = async (req, res) => {
 };
 
 // =================================================================
-// 🏙️ RESTAURANT PUBLIC DATA (Fixes 404 Error)
+// 🏙️ RESTAURANT PUBLIC DATA
 // =================================================================
 
-// @desc    Get All Restaurants (Public)
-const getAllRestaurantsPublic = async (req, res) => {
+export const getAllRestaurantsPublic = async (req, res) => {
   try {
     const restaurants = await User.find({ role: "restaurant_owner" }).select(
       "-password"
@@ -150,8 +149,7 @@ const getAllRestaurantsPublic = async (req, res) => {
   }
 };
 
-// @desc    Get Single Restaurant by ID (Public)
-const getRestaurantById = async (req, res) => {
+export const getRestaurantById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (user) {
@@ -168,7 +166,7 @@ const getRestaurantById = async (req, res) => {
 // 👑 ADMIN FUNCTIONS
 // =================================================================
 
-const createDummyRestaurant = async (req, res) => {
+export const createDummyRestaurant = async (req, res) => {
   try {
     const { name, image } = req.body;
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
@@ -193,7 +191,7 @@ const createDummyRestaurant = async (req, res) => {
   }
 };
 
-const getAllRestaurants = async (req, res) => {
+export const getAllRestaurants = async (req, res) => {
   try {
     const restaurants = await User.find({ role: "restaurant_owner" }).select(
       "-password"
@@ -204,7 +202,7 @@ const getAllRestaurants = async (req, res) => {
   }
 };
 
-const createRestaurantByAdmin = async (req, res) => {
+export const createRestaurantByAdmin = async (req, res) => {
   try {
     const { name, email, password, image } = req.body;
     const userExists = await User.findOne({ email });
@@ -224,7 +222,7 @@ const createRestaurantByAdmin = async (req, res) => {
   }
 };
 
-const updateUserByAdmin = async (req, res) => {
+export const updateUserByAdmin = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (user) {
@@ -244,7 +242,7 @@ const updateUserByAdmin = async (req, res) => {
 // 🔑 PASSWORD RESET
 // =================================================================
 
-const forgotPassword = async (req, res) => {
+export const forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -252,11 +250,9 @@ const forgotPassword = async (req, res) => {
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
 
-    // 👇 CRITICAL FIX: Live URL vs Local URL
-    // Agar production (Live) hai to Vercel ka link, nahi to Localhost
     const frontendUrl =
       process.env.NODE_ENV === "production"
-        ? "https://swadkart-pro.vercel.app" // Aapka Live Vercel Frontend
+        ? "https://swadkart-pro.vercel.app"
         : "http://localhost:5173";
 
     const resetUrl = `${frontendUrl}/password/reset/${resetToken}`;
@@ -281,7 +277,7 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-const resetPassword = async (req, res) => {
+export const resetPassword = async (req, res) => {
   try {
     const resetPasswordToken = crypto
       .createHash("sha256")
@@ -309,41 +305,21 @@ const resetPassword = async (req, res) => {
   }
 };
 
-const getDeliveryPartners = async (req, res) => {
+export const getDeliveryPartners = async (req, res) => {
   try {
-    
-
     const partners = await User.find({ role: "delivery_partner" }).select(
       "-password"
     );
-    
     res.json(partners);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-const seedDatabase = async (req, res) => {
+export const seedDatabase = async (req, res) => {
   try {
     res.json({ message: "Seed function placeholder" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
-
-module.exports = {
-  registerUser,
-  loginUser,
-  getUserProfile,
-  updateUserProfile,
-  forgotPassword,
-  resetPassword,
-  getDeliveryPartners,
-  getAllRestaurants,
-  getAllRestaurantsPublic,
-  getRestaurantById,
-  createRestaurantByAdmin,
-  createDummyRestaurant,
-  seedDatabase,
-  updateUserByAdmin,
 };

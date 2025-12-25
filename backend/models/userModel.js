@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const userSchema = mongoose.Schema(
   {
@@ -25,15 +25,12 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// 👇 CRITICAL FIX: 'next' parameter hata diya gaya hai
-// Agar hum async use kar rahe hain to next() ki zaroorat nahi hai
-userSchema.pre("save", async function () {
-  // Agar password modify nahi hua, toh return kar jao
+// Password Hashing Middleware
+userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
-    return;
+    next();
   }
 
-  // Password Hash karo
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
 });
@@ -50,4 +47,6 @@ userSchema.methods.getResetPasswordToken = function () {
 };
 
 const User = mongoose.model("User", userSchema);
-module.exports = User;
+
+// 👇 CHANGE: module.exports hata kar export default lagaya
+export default User;

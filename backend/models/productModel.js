@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose"; // 👈 require हटाकर import लगाया
 
 const productSchema = mongoose.Schema(
   {
@@ -59,7 +59,7 @@ const productSchema = mongoose.Schema(
       default: 0,
     },
 
-    // Rating fields (Optional but good to keep)
+    // Rating fields
     rating: { type: Number, default: 0 },
     numReviews: { type: Number, default: 0 },
   },
@@ -68,4 +68,7 @@ const productSchema = mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Product", productSchema);
+const Product = mongoose.model("Product", productSchema);
+
+// 👇 CHANGE: module.exports hata kar export default lagaya
+export default Product;

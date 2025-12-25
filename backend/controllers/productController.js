@@ -1,10 +1,10 @@
-const Product = require("../models/productModel");
+import Product from "../models/productModel.js"; // .js extension zaroori hai
 
 // ============================================================
 // 👇 PUBLIC ROUTES
 // ============================================================
 
-const getProducts = async (req, res) => {
+export const getProducts = async (req, res) => {
   try {
     const keyword = req.query.keyword
       ? { name: { $regex: req.query.keyword, $options: "i" } }
@@ -16,7 +16,7 @@ const getProducts = async (req, res) => {
   }
 };
 
-const getProductById = async (req, res) => {
+export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (product) {
@@ -30,21 +30,17 @@ const getProductById = async (req, res) => {
   }
 };
 
-// 👇 IS FUNCTION KO FIX KIYA GAYA HAI
-const getProductsByRestaurant = async (req, res) => {
+// 👇 Restaurant ID ke base pe menu fetch karna
+export const getProductsByRestaurant = async (req, res) => {
   try {
-    // 1. Debugging ke liye Console Log lagaya
     console.log("📥 Fetching Menu for Restaurant ID:", req.params.id);
 
-    // 2. Database mein dhoondo (Restaurant ya User ID match ho)
     const products = await Product.find({
       $or: [{ restaurant: req.params.id }, { user: req.params.id }],
     });
 
     console.log(`✅ Found ${products.length} items for this shop.`);
 
-    // 3. 👇 IMPORTANT FIX: Response ko Object mein wrap kiya
-    // Taaki Frontend (response.data.products) isse padh sake
     res.json({ products });
   } catch (error) {
     console.error("❌ Error fetching menu:", error.message);
@@ -56,7 +52,7 @@ const getProductsByRestaurant = async (req, res) => {
 // 👇 ADMIN / OWNER ROUTES
 // ============================================================
 
-const createProduct = async (req, res) => {
+export const createProduct = async (req, res) => {
   try {
     const {
       name,
@@ -67,6 +63,7 @@ const createProduct = async (req, res) => {
       countInStock,
       restaurantId,
     } = req.body;
+
     const ownerId = restaurantId || req.user._id;
 
     if (!ownerId) {
@@ -81,8 +78,8 @@ const createProduct = async (req, res) => {
       description,
       image: image || "https://placehold.co/400",
       category,
-      restaurant: ownerId, // Backend Link
-      user: ownerId, // Frontend Link
+      restaurant: ownerId,
+      user: ownerId,
       countInStock: countInStock || 100,
       numReviews: 0,
     });
@@ -96,7 +93,7 @@ const createProduct = async (req, res) => {
   }
 };
 
-const deleteProduct = async (req, res) => {
+export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (product) {
@@ -110,7 +107,7 @@ const deleteProduct = async (req, res) => {
   }
 };
 
-const updateProduct = async (req, res) => {
+export const updateProduct = async (req, res) => {
   try {
     const { name, price, description, image, category, countInStock } =
       req.body;
@@ -132,13 +129,4 @@ const updateProduct = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
-
-module.exports = {
-  getProducts,
-  getProductById,
-  getProductsByRestaurant,
-  createProduct,
-  deleteProduct,
-  updateProduct,
 };

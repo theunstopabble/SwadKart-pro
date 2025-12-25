@@ -1,11 +1,14 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {
+
+// 👇 Controller functions ko import karein (.js extension ke saath)
+import {
   createRazorpayOrder,
   verifyPayment,
   getRazorpayKey,
-} = require("../controllers/paymentController");
-const { protect } = require("../middleware/authMiddleware");
+} from "../controllers/paymentController.js";
+
+import { protect } from "../middleware/authMiddleware.js";
 
 // ============================================================
 // 💳 PAYMENT ROUTES
@@ -13,23 +16,18 @@ const { protect } = require("../middleware/authMiddleware");
 
 /**
  * @route   GET /api/v1/payment/key
- * @desc    Get Razorpay Public Key
- * @access  Public (Removed 'protect' to fix 401 Unauthorized error)
  */
 router.route("/key").get(getRazorpayKey);
 
 /**
  * @route   POST /api/v1/payment/create-order
- * @desc    Create a new Razorpay Order ID
- * @access  Private (Requires Login)
  */
 router.route("/create-order").post(protect, createRazorpayOrder);
 
 /**
  * @route   POST /api/v1/payment/verify
- * @desc    Verify Payment Signature and update Order Status
- * @access  Private (Requires Login)
  */
 router.route("/verify").post(protect, verifyPayment);
 
-module.exports = router;
+// 👇 CHANGE: module.exports ki jagah export default
+export default router;

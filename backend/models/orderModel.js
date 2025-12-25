@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose"; // 👈 CHANGE: import use kiya
 
 const orderSchema = mongoose.Schema(
   {
@@ -19,7 +19,7 @@ const orderSchema = mongoose.Schema(
         product: {
           type: mongoose.Schema.Types.ObjectId,
           required: true,
-          ref: "Product", // Links to the Product Model
+          ref: "Product",
         },
       },
     ],
@@ -82,16 +82,25 @@ const orderSchema = mongoose.Schema(
     },
 
     // 8. Delivery Assignment (New Feature 🛵)
-    // This field stores the ID of the Delivery Partner assigned to this order
     deliveryPartner: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Links to the User collection
+      ref: "User",
       default: null,
+    },
+
+    // 9. Order Status (Real-time tracking ke liye important)
+    orderStatus: {
+      type: String,
+      required: true,
+      default: "Placed", // Placed, Cooking, Ready, Out for Delivery, Delivered
     },
   },
   {
-    timestamps: true, // Automatically adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-module.exports = mongoose.model("Order", orderSchema);
+const Order = mongoose.model("Order", orderSchema);
+
+// 👇 CHANGE: module.exports hata kar export default lagaya
+export default Order;

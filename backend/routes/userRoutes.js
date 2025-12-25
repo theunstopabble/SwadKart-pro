@@ -1,22 +1,25 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {
+
+// 👇 Sabhi controllers ko import karein (Extension .js zaroori hai)
+import {
   registerUser,
   loginUser,
   getUserProfile,
   updateUserProfile,
   forgotPassword,
   resetPassword,
-  getAllRestaurantsPublic, // 👈 Frontend ke liye zaroori
-  getRestaurantById, // 👈 Menu page ke liye zaroori
+  getAllRestaurantsPublic,
+  getRestaurantById,
   getDeliveryPartners,
   getAllRestaurants,
   createRestaurantByAdmin,
   createDummyRestaurant,
   seedDatabase,
   updateUserByAdmin,
-} = require("../controllers/userController");
-const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+} from "../controllers/userController.js";
+
+import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
 
 // =================================================================
 // 🔓 PUBLIC ROUTES
@@ -26,8 +29,7 @@ router.post("/login", loginUser);
 router.post("/password/forgot", forgotPassword);
 router.put("/password/reset/:token", resetPassword);
 
-// 👇 CRITICAL FIX: Isse '/restaurants' karein aur sabse upar rakhein
-// Taki server "restaurants" ko ID na samjhe.
+// Publicly restaurants dekhne ke liye
 router.get("/restaurants", getAllRestaurantsPublic);
 
 // =================================================================
@@ -63,8 +65,8 @@ router.put(
   updateUserByAdmin
 );
 
-// 👇 ID ROUTE (YE HAMESHA LAST MEIN AANA CHAHIYE)
-// Agar koi upar wala route match nahi hua, tab server isse ID maanta hai
+// 👇 ID ROUTE (HAMESHA LAST MEIN)
 router.get("/:id", getRestaurantById);
 
-module.exports = router;
+// module.exports ki jagah export default
+export default router;

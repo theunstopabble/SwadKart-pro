@@ -1,42 +1,42 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {
+import {
   addOrderItems,
   getOrderById,
   updateOrderToPaid,
   updateOrderToDelivered,
+  updateOrderStatus, // 👈 New Function Import kiya
   getMyOrders,
   getOrders,
   getAllOrdersAdmin,
   assignDeliveryPartner,
-  getMyDeliveryOrders, // 👈 Import Added
-} = require("../controllers/orderController");
+  getMyDeliveryOrders,
+} from "../controllers/orderController.js"; // Note: .js lagana zaroori hai
 
-const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
 
 // ==================================================================
 // 👇 SPECIFIC ROUTES (Inhein sabse UPAR rakhna zaroori hai)
 // ==================================================================
 
 // 1. User ki Order History
-router.get("/myorders", protect, getMyOrders);
+router.route("/myorders").get(protect, getMyOrders);
 
 // 2. Admin ke liye Saare Orders
-router.get("/admin/all", protect, authorizeRoles("admin"), getAllOrdersAdmin);
+router
+  .route("/admin/all")
+  .get(protect, authorizeRoles("admin"), getAllOrdersAdmin);
 
-// 3. Delivery Partner ke Orders (Ye /:id se pehle aana chahiye!)
-router.get(
-  "/my-deliveries",
-  protect,
-  authorizeRoles("delivery_partner"),
-  getMyDeliveryOrders
-);
+// 3. Delivery Partner ke Orders
+router
+  .route("/my-deliveries")
+  .get(protect, authorizeRoles("delivery_partner"), getMyDeliveryOrders);
 
 // ==================================================================
 // 👇 GENERAL ROUTES
 // ==================================================================
 
-// 4. Root Route
+// 4. Root Route (Create & Get All)
 router
   .route("/")
   .post(protect, addOrderItems)
@@ -46,10 +46,16 @@ router
 // 👇 ID BASED ROUTES (Inhein neeche rakhein)
 // ==================================================================
 
-// 5. Order Payment Status
+// 5. 🔥 NEW ROUTE: General Status Update (Cooking, Ready, etc.)
+// Isme Socket.io laga hua hai controller mein
+router
+  .route("/:id/status")
+  .put(protect, authorizeRoles("admin", "restaurant_owner"), updateOrderStatus);
+
+// 6. Order Payment Status
 router.route("/:id/pay").put(protect, updateOrderToPaid);
 
-// 6. Order Delivery Status
+// 7. Order Delivery Status (Mark as Delivered)
 router
   .route("/:id/deliver")
   .put(
@@ -58,7 +64,7 @@ router
     updateOrderToDelivered
   );
 
-// 7. Assign Delivery Partner
+// 8. Assign Delivery Partner
 router
   .route("/:id/assign")
   .put(
@@ -67,8 +73,7 @@ router
     assignDeliveryPartner
   );
 
-// 8. Get Single Order by ID (Ye Route SABSE LAST mein hona chahiye)
-// Kyunki ye '/:id' kisi bhi string ko match kar leta hai
+// 9. Get Single Order by ID (Ye Route SABSE LAST mein hona chahiye)
 router.route("/:id").get(protect, getOrderById);
 
-module.exports = router;
+export default router;

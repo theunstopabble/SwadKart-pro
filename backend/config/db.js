@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose"; // 👈 require हटाया
 
 const connectDB = async () => {
   try {
@@ -10,9 +10,10 @@ const connectDB = async () => {
 
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    console.error(`Error: ${error.message}`);
+    console.error(`❌ Error: ${error.message}`);
     process.exit(1);
   }
 };
 
-module.exports = connectDB;
+// 👇 CHANGE: module.exports की जगह export default
+export default connectDB;
