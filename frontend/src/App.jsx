@@ -15,9 +15,10 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import RestaurantMenu from "./pages/RestaurantMenu";
 import RestaurantOwnerDashboard from "./pages/RestaurantOwnerDashboard";
+
+// ✅ SAHI IMPORT (Sirf ye wala rahega)
 import DeliveryPartnerDashboard from "./pages/DeliveryPartnerDashboard";
 
-// 👇 Import Footer
 import Footer from "./components/Footer";
 
 function App() {
@@ -38,8 +39,6 @@ function App() {
         <Route path="/myorders" element={<MyOrders />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-
-        {/* Auth Routes */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/password/reset/:token" element={<ResetPassword />} />
 
@@ -48,13 +47,20 @@ function App() {
           path="/restaurant-dashboard"
           element={<RestaurantOwnerDashboard />}
         />
+
+        {/* 👇 Dono URL ke liye 'DeliveryPartnerDashboard' hi use karein */}
         <Route
           path="/delivery-dashboard"
           element={<DeliveryPartnerDashboard />}
         />
+
+        {/* Yahan pehle galti thi, ab sahi component laga diya hai */}
+        <Route
+          path="/delivery/dashboard"
+          element={<DeliveryPartnerDashboard />}
+        />
       </Routes>
 
-      {/* 👇 YAHAN LAGAYEIN FOOTER (Routes ke baad) */}
       <Footer />
     </>
   );
