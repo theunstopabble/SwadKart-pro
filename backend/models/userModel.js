@@ -11,6 +11,12 @@ const userSchema = mongoose.Schema(
     role: { type: String, required: true, default: "user" },
     image: { type: String },
     description: { type: String },
+
+    // 👇 NEW FIELDS FOR OTP SECURITY (OTP Verification)
+    isVerified: { type: Boolean, default: false }, // Login rokne ke liye
+    otp: { type: String }, // Generated OTP store karne ke liye
+    otpExpires: { type: Date }, // OTP expiry time ke liye
+
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },
@@ -22,7 +28,7 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// 🔥 FIXED: Remove 'next' parameter completely
+// Hash password before saving
 userSchema.pre("save", async function () {
   // Agar password modify nahi hua, toh yahin se wapas laut jao (return)
   if (!this.isModified("password")) {

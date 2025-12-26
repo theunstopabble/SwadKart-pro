@@ -2,33 +2,30 @@ import crypto from "crypto";
 import User from "../models/userModel.js";
 import generateToken from "../utils/generateToken.js";
 import sendEmail from "../utils/sendEmail.js";
-import emailValidator from "deep-email-validator"; // 👈 IMPORT IMPORTANT
 
 // =================================================================
 // 🔐 AUTHENTICATION & USER PROFILE
 // =================================================================
 
-// @desc    Register a new user
-// @route   POST /api/v1/users
+// @desc    Register a new user & Send OTP
+// @route   POST /api/v1/users/register
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password, phone, role } = req.body;
 
-    // 1️⃣ MANDATORY FIELD CHECK (Sab kuch bhara hai na?)
+    // 1️⃣ MANDATORY FIELD CHECK
     if (!name || !email || !password || !phone) {
       return res.status(400).json({
-        message:
-          "🚫 All fields are mandatory! Name, Email, Password, and Phone.",
+        message: "🚫 All fields are mandatory!",
       });
     }
 
     // 2️⃣ STRICT PHONE VALIDATION (Indian Standard)
-    // Regex: Must start with 6, 7, 8, or 9 and be exactly 10 digits.
     const phoneRegex = /^[6-9]\d{9}$/;
     if (!phoneRegex.test(phone)) {
       return res.status(400).json({
         message:
-          "🚫 Invalid Phone Number! Must be 10 digits and start with 6, 7, 8, or 9.",
+          "🚫 Invalid Phone Number! Must start with 6-9 and be 10 digits.",
       });
     }
 
@@ -36,46 +33,99 @@ export const registerUser = async (req, res) => {
     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     if (!gmailRegex.test(email)) {
       return res.status(400).json({
-        message: "🚫 Security Alert: Only official Gmail accounts are allowed.",
+        message: "🚫 Only official Gmail accounts are allowed.",
       });
     }
 
-    // 4️⃣ DEEP VALIDATION (Real Existence Check)
-    const { valid, reason, validators } = await emailValidator.validate(email);
-    if (!valid) {
-      return res.status(400).json({
-        message:
-          "🚫 This email does not exist! Please use a real Gmail account.",
-        reason: validators[reason].reason,
-      });
-    }
-
-    // 5️⃣ CHECK IF USER ALREADY EXISTS
+    // 4️⃣ CHECK IF USER ALREADY EXISTS
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // 6️⃣ CREATE USER
+    // 5️⃣ GENERATE 6-DIGIT OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = Date.now() + 10 * 60 * 1000; // 10 Minutes expiry
+
+    // 6️⃣ CREATE USER (Unverified)
     const user = await User.create({
       name,
       email,
       password,
-      phone, // 👈 Phone save ho gaya
+      phone,
       role: role || "user",
+      isVerified: false, // Login blocked until OTP verification
+      otp,
+      otpExpires,
     });
 
     if (user) {
-      // 💌 PROFESSIONAL WELCOME EMAIL TEMPLATE
+      // 💌 SEND OTP EMAIL
+      const message = `
+      Hi ${user.name},
+      
+      Verify your SwadKart account! 🍔
+      
+      Your OTP is: ${otp}
+      
+      This code is valid for 10 minutes.
+      If you verify this, you confirm that ${user.email} belongs to you.
+      `;
+
+      await sendEmail({
+        email: user.email,
+        subject: "SwadKart Verification OTP 🔐",
+        message,
+      });
+
+      res.status(201).json({
+        message: `OTP sent to ${user.email}. Please verify to login.`,
+        email: user.email,
+      });
+    } else {
+      res.status(400).json({ message: "Invalid user data" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Verify OTP & Activate Account (And Send Welcome Email)
+// @route   POST /api/v1/users/verify-email
+export const verifyEmailAPI = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.isVerified) {
+      return res
+        .status(200)
+        .json({ message: "Account already verified. Please Login." });
+    }
+
+    // Check OTP Match & Expiry
+    if (user.otp === otp && user.otpExpires > Date.now()) {
+      user.isVerified = true;
+      user.otp = undefined; // OTP clear
+      user.otpExpires = undefined;
+
+      await user.save();
+
+      // 🎉 AB BHEJENGE WELCOME EMAIL (Kyunki ab user verify ho gaya hai)
       const welcomeMessage = `
 Dear ${user.name},
 
 Welcome to SwadKart! 🍔
 
-We are thrilled to have you join our community. Your account has been successfully created.
-You are now ready to explore the best food options in town and get them delivered right to your doorstep.
+Your account has been successfully verified! ✅
+We are thrilled to have you join our community.
 
-✨ *Here's what you can do:*
+✨ Here's what you can do:
 📦 Fast Delivery
 🥘 Delicious Food
 💳 Secure Payments
@@ -86,23 +136,23 @@ Best Regards,
 The SwadKart Team
       `;
 
-      // Email Background Process
+      // Email background mein bhejo
       sendEmail({
         email: user.email,
-        subject: "Welcome to SwadKart! 🎉",
+        subject: "Account Verified! Welcome to SwadKart 🎉",
         message: welcomeMessage,
-      }).catch((err) => console.log("Email Error (Background):", err.message));
+      }).catch((err) => console.log("Welcome Email Error:", err.message));
 
-      res.status(201).json({
+      res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
         role: user.role,
         token: generateToken(user._id),
+        message: "✅ Email Verified! Welcome Email Sent.",
       });
     } else {
-      res.status(400).json({ message: "Invalid user data" });
+      res.status(400).json({ message: "❌ Invalid or Expired OTP" });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -117,6 +167,13 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      // 🛑 BLOCK IF NOT VERIFIED
+      if (!user.isVerified) {
+        return res.status(401).json({
+          message: "🚫 Email not verified! Please check your email for OTP.",
+        });
+      }
+
       res.json({
         _id: user._id,
         name: user.name,

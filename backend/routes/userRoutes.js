@@ -1,9 +1,10 @@
 import express from "express";
 const router = express.Router();
 
-// 👇 Sabhi controllers ko import karein (Extension .js zaroori hai)
+// 👇 Sabhi controllers ko import karein
 import {
   registerUser,
+  verifyEmailAPI, // 👈 NEW IMPORT (OTP Verify karne ke liye)
   loginUser,
   getUserProfile,
   updateUserProfile,
@@ -25,6 +26,7 @@ import { protect, authorizeRoles } from "../middleware/authMiddleware.js";
 // 🔓 PUBLIC ROUTES
 // =================================================================
 router.post("/register", registerUser);
+router.post("/verify-email", verifyEmailAPI); // 👈 NEW ROUTE (OTP Verification)
 router.post("/login", loginUser);
 router.post("/password/forgot", forgotPassword);
 router.put("/password/reset/:token", resetPassword);
@@ -68,5 +70,4 @@ router.put(
 // 👇 ID ROUTE (HAMESHA LAST MEIN)
 router.get("/:id", getRestaurantById);
 
-// module.exports ki jagah export default
 export default router;
