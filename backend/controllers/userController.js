@@ -2,6 +2,7 @@ import crypto from "crypto";
 import User from "../models/userModel.js";
 import generateToken from "../utils/generateToken.js";
 import sendEmail from "../utils/sendEmail.js";
+import emailValidator from "deep-email-validator"; // 👈 IMPORT IMPORTANT
 
 // =================================================================
 // 🔐 AUTHENTICATION & USER PROFILE
@@ -13,22 +14,36 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password, phone, role } = req.body;
 
-    // 🛡️ SECURITY GUARD: Check for valid Gmail
-    // Sirf @gmail.com allow hoga. Temp mail ya fake domain block ho jayenge.
+    // 1️⃣ BASIC FORMAT CHECK (Spelling)
+    // Sirf @gmail.com allow hoga.
     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
     if (!gmailRegex.test(email)) {
       return res.status(400).json({
         message: "🚫 Security Alert: Only official Gmail accounts are allowed.",
       });
     }
 
+    // 2️⃣ DEEP VALIDATION (Real Existence Check) 🕵️‍♂️
+    // Ye Google se puchega ki "Kya ye email sach mein exist karta hai?"
+    // Note: Isme 2-3 second lag sakte hain.
+    const { valid, reason, validators } = await emailValidator.validate(email);
+
+    if (!valid) {
+      return res.status(400).json({
+        message:
+          "🚫 This email does not exist! Please use a real Gmail account.",
+        reason: validators[reason].reason, // Debugging ke liye
+      });
+    }
+
+    // 3️⃣ CHECK IF USER ALREADY EXISTS
     const userExists = await User.findOne({ email });
 
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // 4️⃣ CREATE USER
     const user = await User.create({
       name,
       email,
@@ -38,7 +53,7 @@ export const registerUser = async (req, res) => {
     });
 
     if (user) {
-      // 🚀 FAST FIX: Email background mein jayega
+      // 🚀 Email background mein jayega
       sendEmail({
         email: user.email,
         subject: "Welcome to SwadKart!",
