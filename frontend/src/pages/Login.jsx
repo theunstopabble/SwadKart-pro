@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-// 👇 FIX: 'login' ki jagah 'setCredentials' import karein
 import { setCredentials } from "../redux/userSlice";
 import { Mail, Lock, LogIn, Loader } from "lucide-react";
-import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
+import { toast } from "react-hot-toast"; // ✅ Toast add kiya (Better UI)
+import { BASE_URL } from "../config";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -26,10 +25,9 @@ const Login = () => {
   const submitHandler = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
 
     try {
-      // 👇 FIX: Use BASE_URL instead of localhost
+      // ✅ BASE_URL ka sahi istemal
       const res = await fetch(`${BASE_URL}/api/v1/users/login`, {
         method: "POST",
         headers: {
@@ -41,15 +39,15 @@ const Login = () => {
       const data = await res.json();
 
       if (res.ok) {
-        // 👇 FIX: Yahan bhi 'setCredentials' dispatch karein
         dispatch(setCredentials(data));
+        toast.success("Login Successful! Welcome back. 👋"); // ✅ Success Pop-up
         navigate("/");
       } else {
-        setError(data.message || "Invalid Email or Password");
+        toast.error(data.message || "Invalid Email or Password"); // 🔴 Error Pop-up
       }
     } catch (err) {
-      setError("Something went wrong. Please try again.");
       console.error(err);
+      toast.error("Network Error. Check your connection.");
     } finally {
       setLoading(false);
     }
@@ -61,12 +59,6 @@ const Login = () => {
         <h2 className="text-3xl font-extrabold text-white text-center mb-8">
           Welcome Back 👋
         </h2>
-
-        {error && (
-          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-6 text-sm text-center font-bold">
-            {error}
-          </div>
-        )}
 
         <form onSubmit={submitHandler} className="space-y-6">
           <div className="relative">

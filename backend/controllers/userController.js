@@ -12,6 +12,17 @@ import sendEmail from "../utils/sendEmail.js";
 export const registerUser = async (req, res) => {
   try {
     const { name, email, password, phone, role } = req.body;
+
+    // 🛡️ SECURITY GUARD: Check for valid Gmail
+    // Sirf @gmail.com allow hoga. Temp mail ya fake domain block ho jayenge.
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+
+    if (!gmailRegex.test(email)) {
+      return res.status(400).json({
+        message: "🚫 Security Alert: Only official Gmail accounts are allowed.",
+      });
+    }
+
     const userExists = await User.findOne({ email });
 
     if (userExists) {
@@ -27,16 +38,12 @@ export const registerUser = async (req, res) => {
     });
 
     if (user) {
-      try {
-        await sendEmail({
-          email: user.email,
-          subject: "Welcome to SwadKart!",
-          message: `Hi ${user.name}, Welcome to SwadKart! Your account has been created successfully.`,
-        });
-      } catch (err) {
-        // Silent fail for email in production, or log to error monitoring service
-        console.error("Email error:", err.message);
-      }
+      // 🚀 FAST FIX: Email background mein jayega
+      sendEmail({
+        email: user.email,
+        subject: "Welcome to SwadKart!",
+        message: `Hi ${user.name}, Welcome to SwadKart! Your account has been created successfully.`,
+      }).catch((err) => console.log("Email Error (Background):", err.message));
 
       res.status(201).json({
         _id: user._id,
@@ -264,19 +271,20 @@ export const forgotPassword = async (req, res) => {
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
 
-    const frontendUrl =
-      process.env.NODE_ENV === "production"
-        ? "https://swadkart-pro.vercel.app"
-        : "http://localhost:5173";
+    // ✅ FIX: Use FRONTEND_URL from environment variables for reliable links
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 
     const resetUrl = `${frontendUrl}/password/reset/${resetToken}`;
+
+    const message = `You requested a password reset. Please click the link below to reset your password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`;
 
     try {
       await sendEmail({
         email: user.email,
-        subject: "Password Reset Request",
-        message: `You requested a password reset. Please click the link below to reset your password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`,
+        subject: "SwadKart Password Recovery",
+        message,
       });
+
       res
         .status(200)
         .json({ success: true, message: `Email sent to ${user.email}` });

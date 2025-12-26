@@ -1,19 +1,17 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { setCredentials } from "../redux/userSlice";
 import { User, Mail, Lock, ArrowRight, Loader } from "lucide-react";
-import { BASE_URL } from "../config"; // 👈 IMPORT IMPORTANT
+import { toast } from "react-hot-toast";
+import { BASE_URL } from "../config";
 
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [message, setMessage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const dispatch = useDispatch();
   const navigate = useNavigate();
   const { userInfo } = useSelector((state) => state.user);
 
@@ -23,35 +21,45 @@ const Register = () => {
 
   const submitHandler = async (e) => {
     e.preventDefault();
+
+    // 🛡️ SECURITY CHECK 1: Passwords match?
     if (password !== confirmPassword) {
-      setMessage("Passwords do not match");
-    } else {
-      setIsLoading(true);
-      setMessage(null);
-      try {
-        // 👇 FIX: Use BASE_URL instead of localhost
-        const res = await fetch(`${BASE_URL}/api/v1/users/register`, {
-          // Note: Backend route usually is /register or just /users (POST). Based on your previous code it was /register
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
-        });
+      toast.error("❌ Passwords do not match");
+      return;
+    }
 
-        const data = await res.json();
+    // 🛡️ SECURITY CHECK 2: Strict Gmail Validation
+    // Sirf wahi email allow hoga jo '@gmail.com' par khatam ho
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
 
-        if (res.ok) {
-          // Register successful
-          dispatch(setCredentials(data));
-          navigate("/");
-        } else {
-          setMessage(data.message || "Registration Failed");
-        }
-      } catch (err) {
-        console.error(err); // Debugging ke liye
-        setMessage("Something went wrong. Server unreachable?");
-      } finally {
-        setIsLoading(false);
+    if (!gmailRegex.test(email)) {
+      toast.error("🚫 Only valid Gmail accounts are allowed!");
+      toast.error("Example: yourname@gmail.com");
+      return; // Yahi rok do, server pe mat bhejo
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("✅ Account created! Please Login.");
+        navigate("/login");
+      } else {
+        toast.error(data.message || "Registration Failed");
       }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong. Server unreachable?");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -64,12 +72,6 @@ const Register = () => {
         <p className="text-gray-400 text-center mb-6">
           Create an account to start ordering
         </p>
-
-        {message && (
-          <div className="bg-red-500/20 text-red-400 p-3 rounded-lg mb-4 text-center font-bold text-sm">
-            {message}
-          </div>
-        )}
 
         <form onSubmit={submitHandler} className="space-y-4">
           <div className="relative">
@@ -88,7 +90,7 @@ const Register = () => {
             <Mail className="absolute left-4 top-3.5 text-gray-500" size={20} />
             <input
               type="email"
-              placeholder="Email Address"
+              placeholder="Gmail Address (e.g. name@gmail.com)" // User ko hint de diya
               className="w-full pl-12 p-3.5 rounded-xl bg-black/50 border border-gray-700 text-white focus:border-primary focus:outline-none"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
