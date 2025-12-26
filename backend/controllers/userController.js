@@ -14,8 +14,25 @@ export const registerUser = async (req, res) => {
   try {
     const { name, email, password, phone, role } = req.body;
 
-    // 1️⃣ BASIC FORMAT CHECK (Spelling)
-    // Sirf @gmail.com allow hoga.
+    // 1️⃣ MANDATORY FIELD CHECK (Sab kuch bhara hai na?)
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({
+        message:
+          "🚫 All fields are mandatory! Name, Email, Password, and Phone.",
+      });
+    }
+
+    // 2️⃣ STRICT PHONE VALIDATION (Indian Standard)
+    // Regex: Must start with 6, 7, 8, or 9 and be exactly 10 digits.
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        message:
+          "🚫 Invalid Phone Number! Must be 10 digits and start with 6, 7, 8, or 9.",
+      });
+    }
+
+    // 3️⃣ STRICT GMAIL CHECK
     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     if (!gmailRegex.test(email)) {
       return res.status(400).json({
@@ -23,41 +40,57 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // 2️⃣ DEEP VALIDATION (Real Existence Check) 🕵️‍♂️
-    // Ye Google se puchega ki "Kya ye email sach mein exist karta hai?"
-    // Note: Isme 2-3 second lag sakte hain.
+    // 4️⃣ DEEP VALIDATION (Real Existence Check)
     const { valid, reason, validators } = await emailValidator.validate(email);
-
     if (!valid) {
       return res.status(400).json({
         message:
           "🚫 This email does not exist! Please use a real Gmail account.",
-        reason: validators[reason].reason, // Debugging ke liye
+        reason: validators[reason].reason,
       });
     }
 
-    // 3️⃣ CHECK IF USER ALREADY EXISTS
+    // 5️⃣ CHECK IF USER ALREADY EXISTS
     const userExists = await User.findOne({ email });
-
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // 4️⃣ CREATE USER
+    // 6️⃣ CREATE USER
     const user = await User.create({
       name,
       email,
       password,
-      phone,
+      phone, // 👈 Phone save ho gaya
       role: role || "user",
     });
 
     if (user) {
-      // 🚀 Email background mein jayega
+      // 💌 PROFESSIONAL WELCOME EMAIL TEMPLATE
+      const welcomeMessage = `
+Dear ${user.name},
+
+Welcome to SwadKart! 🍔
+
+We are thrilled to have you join our community. Your account has been successfully created.
+You are now ready to explore the best food options in town and get them delivered right to your doorstep.
+
+✨ *Here's what you can do:*
+📦 Fast Delivery
+🥘 Delicious Food
+💳 Secure Payments
+
+Login now and start ordering: https://swadkart-pro.vercel.app/login
+
+Best Regards,
+The SwadKart Team
+      `;
+
+      // Email Background Process
       sendEmail({
         email: user.email,
-        subject: "Welcome to SwadKart!",
-        message: `Hi ${user.name}, Welcome to SwadKart! Your account has been created successfully.`,
+        subject: "Welcome to SwadKart! 🎉",
+        message: welcomeMessage,
       }).catch((err) => console.log("Email Error (Background):", err.message));
 
       res.status(201).json({
