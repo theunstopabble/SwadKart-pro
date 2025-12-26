@@ -20,7 +20,7 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // 2️⃣ STRICT PHONE VALIDATION (Indian Standard)
+    // 2️⃣ STRICT PHONE VALIDATION
     const phoneRegex = /^[6-9]\d{9}$/;
     if (!phoneRegex.test(phone)) {
       return res.status(400).json({
@@ -54,7 +54,7 @@ export const registerUser = async (req, res) => {
       password,
       phone,
       role: role || "user",
-      isVerified: false, // Login blocked until OTP verification
+      isVerified: false,
       otp,
       otpExpires,
     });
@@ -72,16 +72,33 @@ export const registerUser = async (req, res) => {
       If you verify this, you confirm that ${user.email} belongs to you.
       `;
 
-      await sendEmail({
-        email: user.email,
-        subject: "SwadKart Verification OTP 🔐",
-        message,
-      });
+      // 👇👇👇 IMPORTANT FIX: TRY-CATCH FOR EMAIL ONLY 👇👇👇
+      try {
+        console.log("📨 Sending OTP to:", user.email);
+        await sendEmail({
+          email: user.email,
+          subject: "SwadKart Verification OTP 🔐",
+          message,
+        });
 
-      res.status(201).json({
-        message: `OTP sent to ${user.email}. Please verify to login.`,
-        email: user.email,
-      });
+        // ✅ Success Response
+        res.status(201).json({
+          message: `OTP sent to ${user.email}. Please verify to login.`,
+          email: user.email,
+        });
+      } catch (emailError) {
+        // ❌ AGAR EMAIL FAIL HUA, TO USER DELETE KARO
+        console.error("❌ Email Failed! Deleting user to allow retry...");
+        console.error(emailError);
+
+        await User.findByIdAndDelete(user._id); // Cleanup
+
+        return res.status(500).json({
+          message:
+            "Email sending failed. Please check your email address or try again later.",
+        });
+      }
+      // 👆👆👆 END FIX 👆👆👆
     } else {
       res.status(400).json({ message: "Invalid user data" });
     }
@@ -90,53 +107,28 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// @desc    Verify OTP & Activate Account (And Send Welcome Email)
-// @route   POST /api/v1/users/verify-email
+// ... (Baaki poora file same rahega, niche ka code copy paste kar lena) ...
+
+// @desc    Verify OTP & Activate Account
 export const verifyEmailAPI = async (req, res) => {
   try {
     const { email, otp } = req.body;
-
     const user = await User.findOne({ email });
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (user.isVerified) {
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.isVerified)
       return res
         .status(200)
         .json({ message: "Account already verified. Please Login." });
-    }
 
-    // Check OTP Match & Expiry
     if (user.otp === otp && user.otpExpires > Date.now()) {
       user.isVerified = true;
-      user.otp = undefined; // OTP clear
+      user.otp = undefined;
       user.otpExpires = undefined;
-
       await user.save();
 
-      // 🎉 AB BHEJENGE WELCOME EMAIL (Kyunki ab user verify ho gaya hai)
-      const welcomeMessage = `
-Dear ${user.name},
-
-Welcome to SwadKart! 🍔
-
-Your account has been successfully verified! ✅
-We are thrilled to have you join our community.
-
-✨ Here's what you can do:
-📦 Fast Delivery
-🥘 Delicious Food
-💳 Secure Payments
-
-Login now and start ordering: https://swadkart-pro.vercel.app/login
-
-Best Regards,
-The SwadKart Team
-      `;
-
-      // Email background mein bhejo
+      // Welcome Email (Non-blocking)
+      const welcomeMessage = `Welcome to SwadKart, ${user.name}! Login here: https://swadkart-pro.vercel.app/login`;
       sendEmail({
         email: user.email,
         subject: "Account Verified! Welcome to SwadKart 🎉",
@@ -159,21 +151,20 @@ The SwadKart Team
   }
 };
 
-// @desc    Login User & Get Token
-// @route   POST /api/v1/users/login
+// @desc    Login User
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
-      // 🛑 BLOCK IF NOT VERIFIED
       if (!user.isVerified) {
-        return res.status(401).json({
-          message: "🚫 Email not verified! Please check your email for OTP.",
-        });
+        return res
+          .status(401)
+          .json({
+            message: "🚫 Email not verified! Please check your email for OTP.",
+          });
       }
-
       res.json({
         _id: user._id,
         name: user.name,
@@ -192,8 +183,9 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// @desc    Get User Profile
-// @route   GET /api/v1/users/profile
+// ... (Baaki saare functions: getUserProfile, updateUserProfile, etc. same rahenge)
+// (Agar aapko wo bhi chahiye to bata dena, waise upar wala copy-paste kaafi hai)
+
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -215,26 +207,19 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
-// @desc    Update User Profile
-// @route   PUT /api/v1/users/profile
 export const updateUserProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
-
     if (user) {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.image = req.body.image || user.image;
       user.phone = req.body.phone || user.phone;
       user.description = req.body.description || user.description;
-
-      // Only update password if provided and not empty
       if (req.body.password && req.body.password.trim() !== "") {
         user.password = req.body.password;
       }
-
       const updatedUser = await user.save();
-
       res.json({
         _id: updatedUser._id,
         name: updatedUser.name,
@@ -253,11 +238,6 @@ export const updateUserProfile = async (req, res, next) => {
   }
 };
 
-// =================================================================
-// 🏙️ RESTAURANT PUBLIC DATA
-// =================================================================
-
-// @desc    Get all restaurants for public view
 export const getAllRestaurantsPublic = async (req, res) => {
   try {
     const restaurants = await User.find({ role: "restaurant_owner" }).select(
@@ -269,7 +249,6 @@ export const getAllRestaurantsPublic = async (req, res) => {
   }
 };
 
-// @desc    Get restaurant details by ID
 export const getRestaurantById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -283,18 +262,12 @@ export const getRestaurantById = async (req, res) => {
   }
 };
 
-// =================================================================
-// 👑 ADMIN FUNCTIONS
-// =================================================================
-
-// @desc    Create a dummy restaurant (Admin only)
 export const createDummyRestaurant = async (req, res) => {
   try {
     const { name, image } = req.body;
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
     const slug = name.toLowerCase().replace(/\s+/g, "");
     const dummyEmail = `${slug}_${randomSuffix}@dummy.swadkart`;
-
     const user = await User.create({
       name: name,
       email: dummyEmail,
@@ -304,7 +277,6 @@ export const createDummyRestaurant = async (req, res) => {
       image: image || "https://cdn-icons-png.flaticon.com/512/1996/1996068.png",
       description: "This is a dummy restaurant description.",
     });
-
     if (user)
       res.status(201).json({ message: "Dummy Shop Created", ...user._doc });
     else res.status(400).json({ message: "Invalid data" });
@@ -313,7 +285,6 @@ export const createDummyRestaurant = async (req, res) => {
   }
 };
 
-// @desc    Get all restaurants (Admin only)
 export const getAllRestaurants = async (req, res) => {
   try {
     const restaurants = await User.find({ role: "restaurant_owner" }).select(
@@ -325,13 +296,11 @@ export const getAllRestaurants = async (req, res) => {
   }
 };
 
-// @desc    Create restaurant account (Admin only)
 export const createRestaurantByAdmin = async (req, res) => {
   try {
     const { name, email, password, image } = req.body;
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: "Email exists" });
-
     const user = await User.create({
       name,
       email,
@@ -346,7 +315,6 @@ export const createRestaurantByAdmin = async (req, res) => {
   }
 };
 
-// @desc    Update restaurant info (Admin only)
 export const updateUserByAdmin = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -363,33 +331,21 @@ export const updateUserByAdmin = async (req, res) => {
   }
 };
 
-// =================================================================
-// 🔑 PASSWORD RESET
-// =================================================================
-
-// @desc    Send password reset email
 export const forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
     if (!user) return res.status(404).json({ message: "User not found" });
-
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
-
-    // ✅ FIX: Use FRONTEND_URL from environment variables for reliable links
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
-
     const resetUrl = `${frontendUrl}/password/reset/${resetToken}`;
-
     const message = `You requested a password reset. Please click the link below to reset your password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`;
-
     try {
       await sendEmail({
         email: user.email,
         subject: "SwadKart Password Recovery",
         message,
       });
-
       res
         .status(200)
         .json({ success: true, message: `Email sent to ${user.email}` });
@@ -404,30 +360,25 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// @desc    Reset password using token
 export const resetPassword = async (req, res) => {
   try {
     const resetPasswordToken = crypto
       .createHash("sha256")
       .update(req.params.token)
       .digest("hex");
-
     const user = await User.findOne({
       resetPasswordToken,
       resetPasswordExpire: { $gt: Date.now() },
     });
-
     if (!user)
       return res.status(400).json({ message: "Invalid or Expired Token" });
     if (req.body.password !== req.body.confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
-
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
-
     res
       .status(200)
       .json({ success: true, message: "Password Updated Successfully" });
@@ -436,11 +387,6 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// =================================================================
-// 🛵 DELIVERY PARTNERS
-// =================================================================
-
-// @desc    Get all delivery partners
 export const getDeliveryPartners = async (req, res) => {
   try {
     const partners = await User.find({ role: "delivery_partner" }).select(
@@ -452,7 +398,6 @@ export const getDeliveryPartners = async (req, res) => {
   }
 };
 
-// Placeholder for database seeding
 export const seedDatabase = async (req, res) => {
   try {
     res.json({ message: "Seed function placeholder" });
