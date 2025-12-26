@@ -128,8 +128,8 @@ export const verifyEmailAPI = async (req, res) => {
 
       // 🎉 PROFESSIONAL WELCOME EMAIL TEMPLATE (Zomato Style)
       const loginUrl = "https://swadkart-pro.vercel.app/login"; // Aapka Frontend Link
-
-      const loginUrl = "https://swadkart-pro.vercel.app/login";
+      // 🎉 HEADER WITH BRAND LOGO
+      const logoUrl = "https://swadkart-pro.vercel.app/logo.png"; // 👈 Apne frontend ke public folder ka logo link yahan dalein
 
       const emailTemplate = `
         <!DOCTYPE html>
@@ -139,9 +139,11 @@ export const verifyEmailAPI = async (req, res) => {
             body { font-family: 'Arial', sans-serif; background-color: #000000; margin: 0; padding: 0; }
             .container { max-width: 600px; margin: 20px auto; background-color: #111827; border-radius: 16px; overflow: hidden; border: 1px solid #1f2937; }
             
-            /* Logo Style matching: Swad (Red) Kart (White) with Tight Tracking */
+            /* Logo Header Style */
             .header { background-color: #000000; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1f2937; }
-            .logo { font-size: 38px; font-weight: 800; margin: 0; letter-spacing: -1.5px; } /* letter-spacing is for tracking-tight */
+            
+            /* Logo Style: Swad (Red) Kart (White) */
+            .logo-text { font-size: 38px; font-weight: 800; margin: 0; letter-spacing: -1.5px; display: inline-block; vertical-align: middle; }
             .swad { color: #ff4757; } 
             .kart { color: #ffffff; }
             
@@ -154,7 +156,7 @@ export const verifyEmailAPI = async (req, res) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1 class="logo"><span class="swad">Swad</span><span class="kart">Kart</span></h1>
+              <h1 class="logo-text"><span class="swad">Swad</span><span class="kart">Kart</span></h1>
               <p style="color: #9ca3af; margin-top: 5px; font-size: 14px; letter-spacing: 0.5px;">Taste the Happiness!</p>
             </div>
             <div class="content">
