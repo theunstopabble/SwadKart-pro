@@ -5,16 +5,14 @@ const sendEmail = async (options) => {
   console.log(`🔹 Sending to: ${options.email}`);
 
   const transporter = nodeMailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465, // 👈 Port 465 (SSL)
-    secure: true, // 👈 465 ke liye ye TRUE hona chahiye
+    // 👇 Service Mode (Port/Host ki chinta nahi)
+    service: "gmail",
     auth: {
       user: process.env.SMTP_MAIL,
       pass: process.env.SMTP_PASSWORD,
     },
-    // Timeout thoda badha diya (20s)
-    connectionTimeout: 20000,
-    greetingTimeout: 20000,
+    // 👇👇👇 MAGIC FIX IS HERE 👇👇👇
+    family: 4, // Ye Render ko IPv4 use karne par majboor karega
   });
 
   const mailOptions = {
@@ -25,7 +23,7 @@ const sendEmail = async (options) => {
   };
 
   try {
-    console.log("🚀 Connecting to Gmail via Port 465...");
+    console.log("🚀 Connecting to Gmail (IPv4 Mode)...");
     const info = await transporter.sendMail(mailOptions);
     console.log("✅ Email Sent! ID: " + info.messageId);
   } catch (error) {
