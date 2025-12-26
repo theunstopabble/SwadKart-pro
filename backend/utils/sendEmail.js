@@ -2,16 +2,19 @@ import nodeMailer from "nodemailer";
 
 const sendEmail = async (options) => {
   console.log("📨 Email Sending Started...");
+  console.log(`🔹 Sending to: ${options.email}`);
 
   const transporter = nodeMailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465, // 👈 Port 465 (SSL)
+    secure: true, // 👈 465 ke liye ye TRUE hona chahiye
     auth: {
       user: process.env.SMTP_MAIL,
       pass: process.env.SMTP_PASSWORD,
     },
-    tls: {
-      rejectUnauthorized: false, // 👈 KEY FIX for Render Cloud
-    },
+    // Timeout thoda badha diya (20s)
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
   });
 
   const mailOptions = {
@@ -22,9 +25,9 @@ const sendEmail = async (options) => {
   };
 
   try {
-    console.log("🚀 Attempting to send email...");
+    console.log("🚀 Connecting to Gmail via Port 465...");
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email Sent Successfully! ID: " + info.messageId);
+    console.log("✅ Email Sent! ID: " + info.messageId);
   } catch (error) {
     console.error("❌ EMAIL FAILED:", error.message);
     throw new Error(error.message);
