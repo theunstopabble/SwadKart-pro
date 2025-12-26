@@ -18,6 +18,9 @@ const emailStyles = `
     .otp-box { background-color: #000000; color: #ff4757; font-size: 36px; font-weight: bold; letter-spacing: 8px; padding: 20px; border-radius: 12px; margin: 25px 0; border: 1px dashed #ff4757; display: inline-block; width: 75%; }
     .cta-button { display: inline-block; background-color: #ff4757; color: #ffffff !important; text-decoration: none; padding: 14px 35px; border-radius: 12px; font-weight: bold; font-size: 18px; margin-top: 25px; transition: 0.3s; }
     .footer { background-color: #000000; color: #6b7280; text-align: center; padding: 25px; font-size: 12px; border-top: 1px solid #1f2937; }
+    .features-box { background-color: #000000; border-radius: 12px; padding: 20px; margin-top: 30px; text-align: left; border: 1px solid #1f2937; }
+    .features-list { list-style: none; padding: 0; margin: 0; }
+    .features-list li { margin-bottom: 10px; color: #9ca3af; font-size: 14px; }
   </style>
 `;
 
@@ -121,6 +124,8 @@ export const verifyEmailAPI = async (req, res) => {
       user.otpExpires = undefined;
       await user.save();
 
+      const loginUrl = "https://swadkart-pro.vercel.app/login";
+
       const welcomeTemplate = `
         <html>
         <head>${emailStyles}</head>
@@ -133,8 +138,18 @@ export const verifyEmailAPI = async (req, res) => {
               <h2 style="color: #ffffff;">Welcome to the Family, ${
                 user.name
               }! 🎉</h2>
-              <p>Account verified successfully. Get ready for authentic flavors!</p>
-              <a href="https://swadkart-pro.vercel.app/login" class="cta-button">Order Now</a>
+              <p>Your account is verified and ready. Enjoy India's most exciting food community.</p>
+              
+              <div class="features-box">
+                <ul class="features-list">
+                  <li>🚀 <b>Flash Delivery:</b> Fastest to your doorstep.</li>
+                  <li>🥘 <b>Top Rated:</b> Handpicked premium restaurants.</li>
+                  <li>🛡️ <b>Secure:</b> 100% safe payments via Razorpay.</li>
+                </ul>
+              </div>
+
+              <a href="${loginUrl}" class="cta-button">Order Your First Meal</a>
+              <p style="margin-top: 30px; font-size: 14px;">Hungry? Let's get some food on your plate!</p>
             </div>
             <div class="footer">
               <p>&copy; ${new Date().getFullYear()} SwadKart. Made with ❤️ for Foodies</p>
@@ -148,7 +163,7 @@ export const verifyEmailAPI = async (req, res) => {
         email: user.email,
         subject: "Welcome to SwadKart! 🍔✨",
         html: welcomeTemplate,
-      }).catch((err) => console.log("Email Error:", err.message));
+      }).catch((err) => console.log("Welcome Email Error:", err.message));
 
       res.json({
         _id: user._id,
@@ -189,7 +204,7 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// @desc    Profile Functions
+// @desc    Get Profile
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -200,6 +215,7 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
+// @desc    Update Profile
 export const updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -245,6 +261,7 @@ export const forgotPassword = async (req, res) => {
           </div>
           <div class="content">
             <h2 style="color: #ffffff;">Password Recovery</h2>
+            <p>Click the button below to securely reset your password. Link valid for 10 minutes.</p>
             <a href="${resetUrl}" class="cta-button">Reset Password</a>
           </div>
           <div class="footer"><p>&copy; SwadKart. Made with ❤️ for Foodies</p></div>
