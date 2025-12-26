@@ -2,18 +2,16 @@ import nodeMailer from "nodemailer";
 
 const sendEmail = async (options) => {
   console.log("📨 Email Sending Started...");
-  console.log(`🔹 Sending to: ${options.email}`);
 
   const transporter = nodeMailer.createTransport({
-    // 👇 MAGIC FIX: Host/Port hataya, Service mode lagaya
     service: "gmail",
     auth: {
       user: process.env.SMTP_MAIL,
       pass: process.env.SMTP_PASSWORD,
     },
-    // Timeout settings (Taaki server atke nahi)
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
+    tls: {
+      rejectUnauthorized: false, // 👈 KEY FIX for Render Cloud
+    },
   });
 
   const mailOptions = {
@@ -24,9 +22,9 @@ const sendEmail = async (options) => {
   };
 
   try {
-    console.log("🚀 Connecting to Gmail via Service Mode...");
+    console.log("🚀 Attempting to send email...");
     const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email Sent! ID: " + info.messageId);
+    console.log("✅ Email Sent Successfully! ID: " + info.messageId);
   } catch (error) {
     console.error("❌ EMAIL FAILED:", error.message);
     throw new Error(error.message);
