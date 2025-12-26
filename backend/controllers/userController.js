@@ -134,43 +134,60 @@ export const verifyEmailAPI = async (req, res) => {
         <html>
         <head>
           <style>
-            body { font-family: 'Arial', sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
-            .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-            .header { background-color: #ff4757; padding: 30px; text-align: center; color: white; }
-            .header h1 { margin: 0; font-size: 28px; letter-spacing: 1px; }
-            .content { padding: 30px; color: #333333; line-height: 1.6; }
-            .cta-button { display: block; width: 200px; margin: 30px auto; background-color: #ff4757; color: #ffffff !important; text-align: center; padding: 12px 0; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(255, 71, 87, 0.3); }
-            .features { display: flex; justify-content: space-around; margin-top: 20px; text-align: center; font-size: 12px; color: #666; }
-            .footer { background-color: #333; color: #888; text-align: center; padding: 15px; font-size: 12px; }
+            /* Site Theme: Dark Background */
+            body { font-family: 'Arial', sans-serif; background-color: #000000; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 20px auto; background-color: #111827; border-radius: 16px; overflow: hidden; border: 1px solid #1f2937; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+            
+            /* Logo Styling matching Navbar */
+            .header { background-color: #000000; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1f2937; }
+            .logo { font-size: 36px; font-weight: 800; letter-spacing: -1px; margin: 0; }
+            .swad { color: #ff4757; } /* Primary Brand Color */
+            .kart { color: #ffffff; }
+            
+            .content { padding: 40px; color: #d1d5db; line-height: 1.8; text-align: center; }
+            .welcome-text { color: #ffffff; font-size: 24px; margin-bottom: 20px; }
+            
+            /* Action Button */
+            .cta-button { display: inline-block; background-color: #ff4757; color: #ffffff !important; text-decoration: none; padding: 14px 35px; border-radius: 12px; font-weight: bold; font-size: 18px; margin-top: 25px; transition: all 0.3s ease; }
+            
+            .features-box { background-color: #000000; border-radius: 12px; padding: 20px; margin-top: 30px; text-align: left; border: 1px solid #1f2937; }
+            .features-list { list-style: none; padding: 0; margin: 0; }
+            .features-list li { margin-bottom: 10px; color: #9ca3af; font-size: 14px; }
+            
+            .footer { background-color: #000000; color: #6b7280; text-align: center; padding: 25px; font-size: 12px; border-top: 1px solid #1f2937; }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>SwadKart 🍔</h1>
-              <p>Taste the Happiness!</p>
+              <h1 class="logo"><span class="swad">Swad</span><span class="kart">Kart</span> 🍔</h1>
+              <p style="color: #9ca3af; margin-top: 10px; font-size: 14px;">Taste the Happiness!</p>
             </div>
             <div class="content">
-              <h2 style="color: #333;">Welcome, ${user.name}! 🎉</h2>
-              <p>Your account has been successfully verified. We are thrilled to have you as part of the SwadKart family.</p>
-              <p>Get ready to experience:</p>
-              <ul>
-                <li>🚀 <b>Super Fast Delivery</b></li>
-                <li>🥘 <b>Authentic Flavors</b></li>
-                <li>💳 <b>Secure Payments</b></li>
-              </ul>
-              <a href="${loginUrl}" class="cta-button">Order Now</a>
-              <p style="text-align: center; margin-top: 30px;">Hungry? Let's get some food on your plate!</p>
+              <h2 class="welcome-text">Welcome to the Family, ${
+                user.name
+              }! 🎉</h2>
+              <p>Your account is verified and ready. You are now part of India's most exciting food community.</p>
+              
+              <div class="features-box">
+                <ul class="features-list">
+                  <li>🚀 <b>Flash Delivery:</b> Fastest to your doorstep.</li>
+                  <li>🥘 <b>Top Rated:</b> Handpicked premium restaurants.</li>
+                  <li>🛡️ <b>Secure:</b> 100% safe payments via Razorpay.</li>
+                </ul>
+              </div>
+
+              <a href="${loginUrl}" class="cta-button">Order Your First Meal</a>
+              <p style="margin-top: 30px; font-size: 14px;">Hungry? Let's get some food on your plate!</p>
             </div>
             <div class="footer">
               <p>&copy; ${new Date().getFullYear()} SwadKart. All rights reserved.</p>
-              <p>Made with ❤️ in India</p>
+              <p>Made with ❤️ for Foodies</p>
             </div>
           </div>
         </body>
         </html>
       `;
-
       // Send Welcome Email (Non-blocking)
       sendEmail({
         email: user.email,
