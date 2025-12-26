@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
+import compression from "compression"; // 👈 SPEED: Data size chota karne ke liye
 import { createServer } from "http";
 import { Server } from "socket.io";
 
@@ -13,20 +14,21 @@ import { notFound, errorHandler } from "./middleware/authMiddleware.js";
 import userRoutes from "./routes/userRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
-
-// 👇 YAHAN DHYAN DO: Hum 'productRoutes' use karenge (FoodRoutes ki jagah)
 import productRoutes from "./routes/productRoutes.js";
 
 dotenv.config();
-connectDB();
+connectDB(); // MongoDB connection fast wala logic yahan config/db.js mein hona chahiye
 
 const app = express();
+
+// 🚀 SPEED FIX: Sabse upar compression add karein
+app.use(compression());
 
 const allowedOrigins = [
   "http://localhost:5173",
   "https://swadkart-pro.vercel.app",
   "https://swadkart-pro.onrender.com",
-  "https://swadkart-backend.onrender.com", // Safety ke liye ye bhi add kar lo
+  "https://swadkart-backend.onrender.com",
 ];
 
 const corsOptions = {
@@ -35,7 +37,7 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(null, true); // Filhal sab allow (Dev mode fix)
+      callback(null, true);
     }
   },
   credentials: true,
@@ -54,6 +56,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Socket logic
 io.on("connection", (socket) => {
   console.log("⚡ New Client Connected:", socket.id);
   socket.on("joinOrder", (orderId) => {
@@ -68,24 +71,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// 🛤️ API ROUTES
+// 🛌 RENDER KEEP-AWAKE: Ye route Render ko sone nahi dega
+app.get("/ping", (req, res) => res.status(200).send("I am awake!"));
 
+// 🛤️ API ROUTES
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/payment", paymentRoutes);
-
-// 👇 MAGIC LINE: Mobile App '/food' mangega, hum use 'productRoutes' denge
 app.use("/api/v1/food", productRoutes);
-// Agar website '/products' mange to bhi wahi file chalegi
 app.use("/api/v1/products", productRoutes);
 
-// ============================================================
-// 📦 PRODUCTION SETUP
-// ============================================================
 app.get("/", (req, res) => {
   res.send("🚀 SwadKart API is running successfully...");
 });
-// ============================================================
 
 app.use(notFound);
 app.use(errorHandler);
