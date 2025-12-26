@@ -29,19 +29,19 @@ const Register = () => {
     }
 
     // 🛡️ SECURITY CHECK 2: Strict Gmail Validation
-    // Sirf wahi email allow hoga jo '@gmail.com' par khatam ho
     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
 
     if (!gmailRegex.test(email)) {
       toast.error("🚫 Only valid Gmail accounts are allowed!");
       toast.error("Example: yourname@gmail.com");
-      return; // Yahi rok do, server pe mat bhejo
+      return;
     }
 
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${BASE_URL}/api/v1/users`, {
+      // ✅ FIX: URL ke aage '/register' lagaya hai
+      const res = await fetch(`${BASE_URL}/api/v1/users/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
@@ -90,7 +90,7 @@ const Register = () => {
             <Mail className="absolute left-4 top-3.5 text-gray-500" size={20} />
             <input
               type="email"
-              placeholder="Gmail Address (e.g. name@gmail.com)" // User ko hint de diya
+              placeholder="Gmail Address (e.g. name@gmail.com)"
               className="w-full pl-12 p-3.5 rounded-xl bg-black/50 border border-gray-700 text-white focus:border-primary focus:outline-none"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
