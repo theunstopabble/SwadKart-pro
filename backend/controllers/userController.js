@@ -72,13 +72,12 @@ export const registerUser = async (req, res) => {
       If you verify this, you confirm that ${user.email} belongs to you.
       `;
 
-      // 👇👇👇 IMPORTANT FIX: TRY-CATCH FOR EMAIL ONLY 👇👇👇
       try {
         console.log("📨 Sending OTP to:", user.email);
         await sendEmail({
           email: user.email,
           subject: "SwadKart Verification OTP 🔐",
-          message,
+          message, // Ye simple text jayega
         });
 
         // ✅ Success Response
@@ -98,7 +97,6 @@ export const registerUser = async (req, res) => {
             "Email sending failed. Please check your email address or try again later.",
         });
       }
-      // 👆👆👆 END FIX 👆👆👆
     } else {
       res.status(400).json({ message: "Invalid user data" });
     }
@@ -107,19 +105,20 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// ... (Baaki poora file same rahega, niche ka code copy paste kar lena) ...
-
-// @desc    Verify OTP & Activate Account
+// @desc    Verify OTP & Activate Account (With Professional Email)
+// @route   POST /api/v1/users/verify-email
 export const verifyEmailAPI = async (req, res) => {
   try {
     const { email, otp } = req.body;
     const user = await User.findOne({ email });
 
     if (!user) return res.status(404).json({ message: "User not found" });
-    if (user.isVerified)
+
+    if (user.isVerified) {
       return res
         .status(200)
         .json({ message: "Account already verified. Please Login." });
+    }
 
     if (user.otp === otp && user.otpExpires > Date.now()) {
       user.isVerified = true;
@@ -127,12 +126,56 @@ export const verifyEmailAPI = async (req, res) => {
       user.otpExpires = undefined;
       await user.save();
 
-      // Welcome Email (Non-blocking)
-      const welcomeMessage = `Welcome to SwadKart, ${user.name}! Login here: https://swadkart-pro.vercel.app/login`;
+      // 🎉 PROFESSIONAL WELCOME EMAIL TEMPLATE (Zomato Style)
+      const loginUrl = "https://swadkart-pro.vercel.app/login"; // Aapka Frontend Link
+
+      const emailTemplate = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: 'Arial', sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+            .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+            .header { background-color: #ff4757; padding: 30px; text-align: center; color: white; }
+            .header h1 { margin: 0; font-size: 28px; letter-spacing: 1px; }
+            .content { padding: 30px; color: #333333; line-height: 1.6; }
+            .cta-button { display: block; width: 200px; margin: 30px auto; background-color: #ff4757; color: #ffffff !important; text-align: center; padding: 12px 0; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px rgba(255, 71, 87, 0.3); }
+            .features { display: flex; justify-content: space-around; margin-top: 20px; text-align: center; font-size: 12px; color: #666; }
+            .footer { background-color: #333; color: #888; text-align: center; padding: 15px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>SwadKart 🍔</h1>
+              <p>Taste the Happiness!</p>
+            </div>
+            <div class="content">
+              <h2 style="color: #333;">Welcome, ${user.name}! 🎉</h2>
+              <p>Your account has been successfully verified. We are thrilled to have you as part of the SwadKart family.</p>
+              <p>Get ready to experience:</p>
+              <ul>
+                <li>🚀 <b>Super Fast Delivery</b></li>
+                <li>🥘 <b>Authentic Flavors</b></li>
+                <li>💳 <b>Secure Payments</b></li>
+              </ul>
+              <a href="${loginUrl}" class="cta-button">Order Now</a>
+              <p style="text-align: center; margin-top: 30px;">Hungry? Let's get some food on your plate!</p>
+            </div>
+            <div class="footer">
+              <p>&copy; ${new Date().getFullYear()} SwadKart. All rights reserved.</p>
+              <p>Made with ❤️ in India</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Send Welcome Email (Non-blocking)
       sendEmail({
         email: user.email,
-        subject: "Account Verified! Welcome to SwadKart 🎉",
-        message: welcomeMessage,
+        subject: "Welcome to the Family! 🍔✨",
+        html: emailTemplate, // 👈 Hum 'html' bhej rahe hain
       }).catch((err) => console.log("Welcome Email Error:", err.message));
 
       res.json({
@@ -151,20 +194,21 @@ export const verifyEmailAPI = async (req, res) => {
   }
 };
 
-// @desc    Login User
+// @desc    Login User & Get Token
+// @route   POST /api/v1/users/login
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
 
     if (user && (await user.matchPassword(password))) {
+      // 🛑 BLOCK IF NOT VERIFIED
       if (!user.isVerified) {
-        return res
-          .status(401)
-          .json({
-            message: "🚫 Email not verified! Please check your email for OTP.",
-          });
+        return res.status(401).json({
+          message: "🚫 Email not verified! Please check your email for OTP.",
+        });
       }
+
       res.json({
         _id: user._id,
         name: user.name,
@@ -183,9 +227,8 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// ... (Baaki saare functions: getUserProfile, updateUserProfile, etc. same rahenge)
-// (Agar aapko wo bhi chahiye to bata dena, waise upar wala copy-paste kaafi hai)
-
+// @desc    Get User Profile
+// @route   GET /api/v1/users/profile
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -207,19 +250,26 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
+// @desc    Update User Profile
+// @route   PUT /api/v1/users/profile
 export const updateUserProfile = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
+
     if (user) {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.image = req.body.image || user.image;
       user.phone = req.body.phone || user.phone;
       user.description = req.body.description || user.description;
+
+      // Only update password if provided and not empty
       if (req.body.password && req.body.password.trim() !== "") {
         user.password = req.body.password;
       }
+
       const updatedUser = await user.save();
+
       res.json({
         _id: updatedUser._id,
         name: updatedUser.name,
@@ -238,6 +288,11 @@ export const updateUserProfile = async (req, res, next) => {
   }
 };
 
+// =================================================================
+// 🏙️ RESTAURANT PUBLIC DATA
+// =================================================================
+
+// @desc    Get all restaurants for public view
 export const getAllRestaurantsPublic = async (req, res) => {
   try {
     const restaurants = await User.find({ role: "restaurant_owner" }).select(
@@ -249,6 +304,7 @@ export const getAllRestaurantsPublic = async (req, res) => {
   }
 };
 
+// @desc    Get restaurant details by ID
 export const getRestaurantById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -262,12 +318,18 @@ export const getRestaurantById = async (req, res) => {
   }
 };
 
+// =================================================================
+// 👑 ADMIN FUNCTIONS
+// =================================================================
+
+// @desc    Create a dummy restaurant (Admin only)
 export const createDummyRestaurant = async (req, res) => {
   try {
     const { name, image } = req.body;
     const randomSuffix = Math.floor(100000 + Math.random() * 900000);
     const slug = name.toLowerCase().replace(/\s+/g, "");
     const dummyEmail = `${slug}_${randomSuffix}@dummy.swadkart`;
+
     const user = await User.create({
       name: name,
       email: dummyEmail,
@@ -277,6 +339,7 @@ export const createDummyRestaurant = async (req, res) => {
       image: image || "https://cdn-icons-png.flaticon.com/512/1996/1996068.png",
       description: "This is a dummy restaurant description.",
     });
+
     if (user)
       res.status(201).json({ message: "Dummy Shop Created", ...user._doc });
     else res.status(400).json({ message: "Invalid data" });
@@ -285,6 +348,7 @@ export const createDummyRestaurant = async (req, res) => {
   }
 };
 
+// @desc    Get all restaurants (Admin only)
 export const getAllRestaurants = async (req, res) => {
   try {
     const restaurants = await User.find({ role: "restaurant_owner" }).select(
@@ -296,11 +360,13 @@ export const getAllRestaurants = async (req, res) => {
   }
 };
 
+// @desc    Create restaurant account (Admin only)
 export const createRestaurantByAdmin = async (req, res) => {
   try {
     const { name, email, password, image } = req.body;
     const userExists = await User.findOne({ email });
     if (userExists) return res.status(400).json({ message: "Email exists" });
+
     const user = await User.create({
       name,
       email,
@@ -315,6 +381,7 @@ export const createRestaurantByAdmin = async (req, res) => {
   }
 };
 
+// @desc    Update restaurant info (Admin only)
 export const updateUserByAdmin = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -331,21 +398,32 @@ export const updateUserByAdmin = async (req, res) => {
   }
 };
 
+// =================================================================
+// 🔑 PASSWORD RESET
+// =================================================================
+
+// @desc    Send password reset email
 export const forgotPassword = async (req, res) => {
   try {
     const user = await User.findOne({ email: req.body.email });
     if (!user) return res.status(404).json({ message: "User not found" });
+
     const resetToken = user.getResetPasswordToken();
     await user.save({ validateBeforeSave: false });
+
+    // ✅ FIX: Use FRONTEND_URL from environment variables for reliable links
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     const resetUrl = `${frontendUrl}/password/reset/${resetToken}`;
+
     const message = `You requested a password reset. Please click the link below to reset your password:\n\n${resetUrl}\n\nIf you did not request this, please ignore this email.`;
+
     try {
       await sendEmail({
         email: user.email,
         subject: "SwadKart Password Recovery",
-        message,
+        message, // Utility will wrap this in simple HTML
       });
+
       res
         .status(200)
         .json({ success: true, message: `Email sent to ${user.email}` });
@@ -360,25 +438,30 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
+// @desc    Reset password using token
 export const resetPassword = async (req, res) => {
   try {
     const resetPasswordToken = crypto
       .createHash("sha256")
       .update(req.params.token)
       .digest("hex");
+
     const user = await User.findOne({
       resetPasswordToken,
       resetPasswordExpire: { $gt: Date.now() },
     });
+
     if (!user)
       return res.status(400).json({ message: "Invalid or Expired Token" });
     if (req.body.password !== req.body.confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
+
     user.password = req.body.password;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
+
     res
       .status(200)
       .json({ success: true, message: "Password Updated Successfully" });
@@ -387,6 +470,11 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// =================================================================
+// 🛵 DELIVERY PARTNERS
+// =================================================================
+
+// @desc    Get all delivery partners
 export const getDeliveryPartners = async (req, res) => {
   try {
     const partners = await User.find({ role: "delivery_partner" }).select(
@@ -398,6 +486,7 @@ export const getDeliveryPartners = async (req, res) => {
   }
 };
 
+// Placeholder for database seeding
 export const seedDatabase = async (req, res) => {
   try {
     res.json({ message: "Seed function placeholder" });
