@@ -160,7 +160,7 @@ export const verifyEmailAPI = async (req, res) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1 class="logo"><span class="swad">Swad</span><span class="kart">Kart</span> 🍔</h1>
+              <h1 class="logo"><span class="swad">Swad</span><span class="kart">Kart</span> </h1>
               <p style="color: #9ca3af; margin-top: 10px; font-size: 14px;">Taste the Happiness!</p>
             </div>
             <div class="content">
