@@ -1,4 +1,6 @@
 import { Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast"; // 👈 IMPORT 1 (Zaruri hai)
+
 import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -15,15 +17,15 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import RestaurantMenu from "./pages/RestaurantMenu";
 import RestaurantOwnerDashboard from "./pages/RestaurantOwnerDashboard";
-
-// ✅ SAHI IMPORT (Sirf ye wala rahega)
 import DeliveryPartnerDashboard from "./pages/DeliveryPartnerDashboard";
-
 import Footer from "./components/Footer";
 
 function App() {
   return (
     <>
+      {/* 👇 FIX: Ye line add karein, tabhi Alerts dikhenge */}
+      <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+
       <Navbar />
 
       <Routes>
@@ -48,13 +50,12 @@ function App() {
           element={<RestaurantOwnerDashboard />}
         />
 
-        {/* 👇 Dono URL ke liye 'DeliveryPartnerDashboard' hi use karein */}
         <Route
           path="/delivery-dashboard"
           element={<DeliveryPartnerDashboard />}
         />
 
-        {/* Yahan pehle galti thi, ab sahi component laga diya hai */}
+        {/* Old path support */}
         <Route
           path="/delivery/dashboard"
           element={<DeliveryPartnerDashboard />}
