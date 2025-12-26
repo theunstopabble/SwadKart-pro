@@ -56,9 +56,11 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-black px-4">
       <div className="max-w-md w-full bg-gray-900 p-8 rounded-2xl shadow-2xl border border-gray-800">
-        <h2 className="text-3xl font-extrabold text-white text-center mb-8">
-          Welcome Back 👋
+        <h2 className="text-3xl font-extrabold text-white text-center mb-2">
+          Hungry? Let's get you 
+          <br /><span className="text-primary tracking-tight">Swad</span>Kart
         </h2>
+        <br />
 
         <form onSubmit={submitHandler} className="space-y-6">
           <div className="relative">
@@ -111,12 +113,12 @@ const Login = () => {
         </form>
 
         <p className="text-gray-400 text-center mt-8 text-sm">
-          New to SwadKart?{" "}
+          Hungry for more?{" "}
           <Link
             to="/register"
             className="text-primary font-bold hover:underline"
           >
-            Create an account
+            Register here
           </Link>
         </p>
       </div>
