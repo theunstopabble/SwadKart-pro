@@ -129,30 +129,24 @@ export const verifyEmailAPI = async (req, res) => {
       // 🎉 PROFESSIONAL WELCOME EMAIL TEMPLATE (Zomato Style)
       const loginUrl = "https://swadkart-pro.vercel.app/login"; // Aapka Frontend Link
 
+      const loginUrl = "https://swadkart-pro.vercel.app/login";
+
       const emailTemplate = `
         <!DOCTYPE html>
         <html>
         <head>
           <style>
-            /* Site Theme: Dark Background */
             body { font-family: 'Arial', sans-serif; background-color: #000000; margin: 0; padding: 0; }
-            .container { max-width: 600px; margin: 20px auto; background-color: #111827; border-radius: 16px; overflow: hidden; border: 1px solid #1f2937; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+            .container { max-width: 600px; margin: 20px auto; background-color: #111827; border-radius: 16px; overflow: hidden; border: 1px solid #1f2937; }
             
-            /* Logo Styling matching Navbar */
+            /* Logo Style matching: Swad (Red) Kart (White) with Tight Tracking */
             .header { background-color: #000000; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1f2937; }
-            .logo { font-size: 36px; font-weight: 800; letter-spacing: -1px; margin: 0; }
-            .swad { color: #ff4757; } /* Primary Brand Color */
+            .logo { font-size: 38px; font-weight: 800; margin: 0; letter-spacing: -1.5px; } /* letter-spacing is for tracking-tight */
+            .swad { color: #ff4757; } 
             .kart { color: #ffffff; }
             
             .content { padding: 40px; color: #d1d5db; line-height: 1.8; text-align: center; }
-            .welcome-text { color: #ffffff; font-size: 24px; margin-bottom: 20px; }
-            
-            /* Action Button */
-            .cta-button { display: inline-block; background-color: #ff4757; color: #ffffff !important; text-decoration: none; padding: 14px 35px; border-radius: 12px; font-weight: bold; font-size: 18px; margin-top: 25px; transition: all 0.3s ease; }
-            
-            .features-box { background-color: #000000; border-radius: 12px; padding: 20px; margin-top: 30px; text-align: left; border: 1px solid #1f2937; }
-            .features-list { list-style: none; padding: 0; margin: 0; }
-            .features-list li { margin-bottom: 10px; color: #9ca3af; font-size: 14px; }
+            .cta-button { display: inline-block; background-color: #ff4757; color: #ffffff !important; text-decoration: none; padding: 14px 35px; border-radius: 12px; font-weight: bold; font-size: 18px; margin-top: 25px; }
             
             .footer { background-color: #000000; color: #6b7280; text-align: center; padding: 25px; font-size: 12px; border-top: 1px solid #1f2937; }
           </style>
@@ -160,25 +154,16 @@ export const verifyEmailAPI = async (req, res) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1 class="logo"><span class="swad">Swad</span><span class="kart">Kart</span> </h1>
-              <p style="color: #9ca3af; margin-top: 10px; font-size: 14px;">Taste the Happiness!</p>
+              <h1 class="logo"><span class="swad">Swad</span><span class="kart">Kart</span></h1>
+              <p style="color: #9ca3af; margin-top: 5px; font-size: 14px; letter-spacing: 0.5px;">Taste the Happiness!</p>
             </div>
             <div class="content">
-              <h2 class="welcome-text">Welcome to the Family, ${
+              <h2 style="color: #ffffff; font-size: 24px;">Welcome to the Family, ${
                 user.name
               }! 🎉</h2>
-              <p>Your account is verified and ready. You are now part of India's most exciting food community.</p>
+              <p>Your account is verified. Get ready for the fastest delivery and authentic flavors right at your doorstep.</p>
               
-              <div class="features-box">
-                <ul class="features-list">
-                  <li>🚀 <b>Flash Delivery:</b> Fastest to your doorstep.</li>
-                  <li>🥘 <b>Top Rated:</b> Handpicked premium restaurants.</li>
-                  <li>🛡️ <b>Secure:</b> 100% safe payments via Razorpay.</li>
-                </ul>
-              </div>
-
-              <a href="${loginUrl}" class="cta-button">Order Your First Meal</a>
-              <p style="margin-top: 30px; font-size: 14px;">Hungry? Let's get some food on your plate!</p>
+              <a href="${loginUrl}" class="cta-button">Order Now</a>
             </div>
             <div class="footer">
               <p>&copy; ${new Date().getFullYear()} SwadKart. All rights reserved.</p>
