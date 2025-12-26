@@ -9,11 +9,13 @@ import {
   ArrowRight,
   Loader,
   KeyRound,
-} from "lucide-react"; // 👈 KeyRound Icon Added
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 import { BASE_URL } from "../config";
-// 👇 IMPORT: Ye path check kar lena, jahan aapka authSlice hai
-import { setCredentials } from "../redux/features/auth/authSlice";
+
+// ✅ FIX: Sahi path lagaya hai (userSlice.js)
+// Kyunki aapke folder structure me 'features/auth' nahi hai, seedha 'redux/userSlice.js' hai
+import { setCredentials } from "../redux/userSlice";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -22,8 +24,8 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // 👇 NEW STATES FOR OTP
-  const [otpSent, setOtpSent] = useState(false); // Form dikhana hai ya OTP screen?
+  // OTP States
+  const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,12 +38,11 @@ const Register = () => {
   }, [navigate, userInfo]);
 
   // ==========================================
-  // 1️⃣ STEP 1: SEND OTP (Register API)
+  // 1️⃣ STEP 1: SEND OTP
   // ==========================================
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    // VALIDATIONS
     if (!name || !email || !phone || !password || !confirmPassword) {
       toast.error("🚫 All fields are mandatory!");
       return;
@@ -73,7 +74,7 @@ const Register = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setOtpSent(true); // ✅ Screen Switch: Ab OTP mangenge
+        setOtpSent(true);
         toast.success(data.message || "OTP sent to your email! 📧");
       } else {
         toast.error(data.message || "Registration Failed");
@@ -87,7 +88,7 @@ const Register = () => {
   };
 
   // ==========================================
-  // 2️⃣ STEP 2: VERIFY OTP (Verify API)
+  // 2️⃣ STEP 2: VERIFY OTP
   // ==========================================
   const verifyOtpHandler = async (e) => {
     e.preventDefault();
@@ -109,8 +110,10 @@ const Register = () => {
 
       if (res.ok) {
         toast.success("🎉 Account Verified! Welcome to SwadKart.");
-        // 🔥 Auto Login: Redux mein store kar do
+
+        // 🔥 REDUX: Data store karo aur login karo
         dispatch(setCredentials(data));
+
         navigate("/");
       } else {
         toast.error(data.message || "Invalid or Expired OTP");
@@ -134,7 +137,6 @@ const Register = () => {
             : "Create an account to start ordering"}
         </p>
 
-        {/* 👇 CONDITIONAL RENDERING: Form dikhana hai ya OTP Input? */}
         {!otpSent ? (
           // === FORM VIEW ===
           <form onSubmit={submitHandler} className="space-y-4">

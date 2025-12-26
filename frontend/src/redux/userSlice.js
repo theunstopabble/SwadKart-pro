@@ -1,8 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios"; // Axios import karna zaroori hai
-
-// 🌐 API URL Setup
-const BACKEND_URL = "http://localhost:8000"; // Development ke liye
+import axios from "axios";
+import { BASE_URL } from "../config"; // 👈 IMPORT FROM CONFIG (Best Practice)
 
 const initialState = {
   userInfo: localStorage.getItem("userInfo")
@@ -13,7 +11,7 @@ const initialState = {
   success: false,
 };
 
-// 👇 1. UPDATE PROFILE ACTION (Ye backend ko call karega)
+// 👇 1. UPDATE PROFILE ACTION
 export const updateUserProfile = createAsyncThunk(
   "user/updateProfile",
   async (userData, { getState, rejectWithValue }) => {
@@ -29,14 +27,14 @@ export const updateUserProfile = createAsyncThunk(
         },
       };
 
-      // Backend API Call
+      // ✅ FIX: Using BASE_URL from config
       const { data } = await axios.put(
-        `${BACKEND_URL}/api/v1/users/profile`,
+        `${BASE_URL}/api/v1/users/profile`,
         userData,
         config
       );
 
-      return data; // Ye data niche 'fulfilled' me jayega
+      return data;
     } catch (error) {
       return rejectWithValue(
         error.response && error.response.data.message
@@ -62,19 +60,18 @@ const userSlice = createSlice({
       state.error = null;
     },
   },
-  // 👇 2. EXTRA REDUCERS (Yahan Redux state update hoti hai)
+  // 👇 2. EXTRA REDUCERS
   extraReducers: (builder) => {
     builder
-      // Update Profile Cases
       .addCase(updateUserProfile.pending, (state) => {
         state.loading = true;
-        state.error = null; // Purana error saaf karo
+        state.error = null;
       })
       .addCase(updateUserProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.success = true;
-        state.userInfo = action.payload; // ✅ YAHAN UPDATE HOTA HAI MAGIC
-        localStorage.setItem("userInfo", JSON.stringify(action.payload)); // LocalStorage bhi update
+        state.userInfo = action.payload; // ✅ Update Redux State
+        localStorage.setItem("userInfo", JSON.stringify(action.payload)); // ✅ Update LocalStorage
       })
       .addCase(updateUserProfile.rejected, (state, action) => {
         state.loading = false;
