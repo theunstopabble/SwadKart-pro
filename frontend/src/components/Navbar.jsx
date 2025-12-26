@@ -31,7 +31,8 @@ const Navbar = () => {
   const closeMenu = () => setIsOpen(false);
 
   return (
-    <nav className="bg-gray-950 text-white border-b border-gray-800 fixed w-full z-50 top-0">
+    /* FIXED: Added pt-8 for Mobile Status Bar compatibility and md:pt-0 for Desktop */
+    <nav className="bg-gray-950 text-white border-b border-gray-800 fixed w-full z-50 top-0 pt-8 md:pt-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* LOGO */}
@@ -43,9 +44,7 @@ const Navbar = () => {
             Swad<span className="text-white">Kart</span>
           </Link>
 
-          {/* ================================================= */}
-          {/* 🖥️ DESKTOP MENU (Hidden on Mobile) */}
-          {/* ================================================= */}
+          {/* 🖥️ DESKTOP MENU */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
               to="/"
@@ -137,7 +136,7 @@ const Navbar = () => {
             </Link>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* MOBILE MENU BUTTON (Cart + Hamburger) */}
           <div className="flex items-center gap-4 md:hidden">
             <Link to="/cart" className="relative" onClick={closeMenu}>
               <ShoppingCart size={22} />
@@ -157,9 +156,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ================================================= */}
-      {/* 📱 MOBILE MENU DROPDOWN (Fixed Here) */}
-      {/* ================================================= */}
+      {/* 📱 MOBILE MENU DROPDOWN */}
       {isOpen && (
         <div className="md:hidden bg-gray-900 border-b border-gray-800 animate-fade-in-down">
           <div className="px-4 pt-2 pb-6 space-y-2">
@@ -173,7 +170,6 @@ const Navbar = () => {
 
             {userInfo ? (
               <>
-                {/* 👇 FIX: Added Role Links for Mobile */}
                 {userInfo.role === "admin" && (
                   <Link
                     to="/admin/dashboard"
@@ -186,7 +182,7 @@ const Navbar = () => {
 
                 {userInfo.role === "restaurant_owner" && (
                   <Link
-                    to="/restaurant/dashboard"
+                    to="/restaurant-dashboard"
                     className="flex items-center gap-2 px-3 py-3 rounded-md text-base font-bold text-green-400 hover:bg-gray-800"
                     onClick={closeMenu}
                   >

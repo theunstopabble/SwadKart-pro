@@ -12,6 +12,7 @@
   "dependencies": {
     "@capacitor/android": "^8.0.0",
     "@capacitor/core": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@react-oauth/google": "^0.12.2",
     "@reduxjs/toolkit": "^2.11.2",
