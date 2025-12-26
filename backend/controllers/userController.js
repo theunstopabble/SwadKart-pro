@@ -74,7 +74,7 @@ export const registerUser = async (req, res) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1 class="logo-text"><span class="swad">Swad</span><span class="kart">Kart</span> 🍔</h1>
+              <h1 class="logo-text"><span class="swad">Swad</span><span class="kart">Kart</span></h1>
             </div>
             <div class="content">
               <h2 style="color: #ffffff;">Verify Your Email</h2>
@@ -132,7 +132,7 @@ export const verifyEmailAPI = async (req, res) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1 class="logo-text"><span class="swad">Swad</span><span class="kart">Kart</span> 🍔</h1>
+              <h1 class="logo-text"><span class="swad">Swad</span><span class="kart">Kart</span> </h1>
             </div>
             <div class="content">
               <h2 style="color: #ffffff;">Welcome to the Family, ${
@@ -161,7 +161,7 @@ export const verifyEmailAPI = async (req, res) => {
 
       sendEmail({
         email: user.email,
-        subject: "Welcome to SwadKart! 🍔✨",
+        subject: "Welcome to SwadKart! ✨",
         html: welcomeTemplate,
       }).catch((err) => console.log("Welcome Email Error:", err.message));
 
@@ -257,7 +257,7 @@ export const forgotPassword = async (req, res) => {
       <body>
         <div class="container">
           <div class="header">
-            <h1 class="logo-text"><span class="swad">Swad</span><span class="kart">Kart</span> 🍔</h1>
+            <h1 class="logo-text"><span class="swad">Swad</span><span class="kart">Kart</span></h1>
           </div>
           <div class="content">
             <h2 style="color: #ffffff;">Password Recovery</h2>

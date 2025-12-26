@@ -149,7 +149,7 @@ const Footer = () => {
               size={14}
               className="text-red-500 fill-red-500 animate-pulse"
             />{" "}
-            by <span className="text-white font-bold">The Unstoppable</span>
+            by <span className="text-white font-bold">Gautam Kumar</span>
           </p>
         </div>
       </div>
