@@ -12,9 +12,6 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { BASE_URL } from "../config";
-
-// ✅ FIX: Sahi path lagaya hai (userSlice.js)
-// Kyunki aapke folder structure me 'features/auth' nahi hai, seedha 'redux/userSlice.js' hai
 import { setCredentials } from "../redux/userSlice";
 
 const Register = () => {
@@ -37,12 +34,9 @@ const Register = () => {
     if (userInfo) navigate("/");
   }, [navigate, userInfo]);
 
-  // ==========================================
-  // 1️⃣ STEP 1: SEND OTP
-  // ==========================================
+  // ... (submitHandler aur verifyOtpHandler same rahenge - No Change) ...
   const submitHandler = async (e) => {
     e.preventDefault();
-
     if (!name || !email || !phone || !password || !confirmPassword) {
       toast.error("🚫 All fields are mandatory!");
       return;
@@ -70,9 +64,7 @@ const Register = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, phone, password }),
       });
-
       const data = await res.json();
-
       if (res.ok) {
         setOtpSent(true);
         toast.success(data.message || "OTP sent to your email! 📧");
@@ -87,33 +79,23 @@ const Register = () => {
     }
   };
 
-  // ==========================================
-  // 2️⃣ STEP 2: VERIFY OTP
-  // ==========================================
   const verifyOtpHandler = async (e) => {
     e.preventDefault();
     if (otp.length !== 6) {
       toast.error("❌ Please enter a valid 6-digit OTP");
       return;
     }
-
     setIsLoading(true);
-
     try {
       const res = await fetch(`${BASE_URL}/api/v1/users/verify-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
       });
-
       const data = await res.json();
-
       if (res.ok) {
         toast.success("🎉 Account Verified! Welcome to SwadKart.");
-
-        // 🔥 REDUX: Data store karo aur login karo
         dispatch(setCredentials(data));
-
         navigate("/");
       } else {
         toast.error(data.message || "Invalid or Expired OTP");
@@ -128,9 +110,18 @@ const Register = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-black px-4">
       <div className="max-w-md w-full bg-gray-900 p-8 rounded-2xl shadow-2xl border border-gray-800">
+        {/* 👇 LOGO STYLE FIXED: Join (White) Swad (Red) Kart (White) */}
         <h2 className="text-3xl font-extrabold text-white text-center mb-2">
-          {otpSent ? "Verify Email 🔐" : "Join SwadKart 🍔"}
+          {otpSent ? (
+            "Verify Email 🔐"
+          ) : (
+            <>
+              Join{" "}
+              <span className="text-primary tracking-tight">Swad</span>Kart
+            </>
+          )}
         </h2>
+
         <p className="text-gray-400 text-center mb-6">
           {otpSent
             ? `Enter the OTP sent to ${email}`
@@ -138,8 +129,8 @@ const Register = () => {
         </p>
 
         {!otpSent ? (
-          // === FORM VIEW ===
           <form onSubmit={submitHandler} className="space-y-4">
+            {/* Inputs Same as before */}
             <div className="relative">
               <User
                 className="absolute left-4 top-3.5 text-gray-500"
@@ -154,7 +145,6 @@ const Register = () => {
                 required
               />
             </div>
-
             <div className="relative">
               <Mail
                 className="absolute left-4 top-3.5 text-gray-500"
@@ -169,7 +159,6 @@ const Register = () => {
                 required
               />
             </div>
-
             <div className="relative">
               <Phone
                 className="absolute left-4 top-3.5 text-gray-500"
@@ -185,7 +174,6 @@ const Register = () => {
                 maxLength={10}
               />
             </div>
-
             <div className="relative">
               <Lock
                 className="absolute left-4 top-3.5 text-gray-500"
@@ -200,7 +188,6 @@ const Register = () => {
                 required
               />
             </div>
-
             <div className="relative">
               <Lock
                 className="absolute left-4 top-3.5 text-gray-500"
@@ -219,7 +206,7 @@ const Register = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-primary hover:bg-red-600 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+              className="w-full bg-[#ff4757] hover:bg-red-600 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
             >
               {isLoading ? (
                 <Loader className="animate-spin" />
@@ -234,14 +221,13 @@ const Register = () => {
               Already have an account?{" "}
               <Link
                 to="/login"
-                className="text-primary font-bold hover:underline"
+                className="text-[#ff4757] font-bold hover:underline"
               >
                 Login here
               </Link>
             </p>
           </form>
         ) : (
-          // === OTP INPUT VIEW ===
           <form onSubmit={verifyOtpHandler} className="space-y-6">
             <div className="relative">
               <KeyRound
