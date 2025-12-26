@@ -1,34 +1,51 @@
-import nodeMailer from "nodemailer";
-
+// Universal Email Sender using Brevo API (Works on all Cloud Servers)
 const sendEmail = async (options) => {
-  console.log("📨 Email Sending Started (via Brevo Port 465)...");
+  console.log("📨 Email Sending Started (via Brevo API)...");
   console.log(`🔹 Sending to: ${options.email}`);
 
-  const transporter = nodeMailer.createTransport({
-    host: "smtp-relay.brevo.com", // 👈 Hardcoded taaki galti na ho
-    port: 465, // 👈 Port 465 (SSL) best hai
-    secure: true, // 👈 465 ke liye True
-    auth: {
-      user: process.env.SMTP_MAIL,
-      pass: process.env.SMTP_PASSWORD,
-    },
-    // Timeout logic taaki atke nahi
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-  });
+  const url = "https://api.brevo.com/v3/smtp/email";
 
-  const mailOptions = {
-    from: "SwadKart <swadkartt@gmail.com>",
-    to: options.email,
+  const data = {
+    sender: {
+      name: "SwadKart",
+      email: "swadkartt@gmail.com", // Aapka Verified Sender Email
+    },
+    to: [
+      {
+        email: options.email,
+        name: options.email.split("@")[0],
+      },
+    ],
     subject: options.subject,
-    text: options.message,
+    // Brevo API 'htmlContent' mangta hai, 'text' nahi.
+    // Hum simple text ko HTML me wrap kar rahe hain:
+    htmlContent: `
+      <html>
+        <body>
+          <p>${options.message.replace(/\n/g, "<br>")}</p>
+        </body>
+      </html>`,
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email Sent Successfully! ID: " + info.messageId);
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "api-key": process.env.BREVO_API_KEY, // 👈 Render Env se Key uthayega
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "API Error");
+    }
+
+    console.log("✅ Email Sent Successfully via API!");
   } catch (error) {
-    console.error("❌ EMAIL FAILED:", error.message);
+    console.error("❌ EMAIL FAILED (API):", error.message);
     throw new Error(error.message);
   }
 };
