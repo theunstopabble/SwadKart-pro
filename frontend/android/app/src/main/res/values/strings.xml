@@ -4,4 +4,6 @@
     <string name="title_activity_main">SwadKart</string>
     <string name="package_name">com.swadkart.app</string>
     <string name="custom_url_scheme">com.swadkart.app</string>
+
+    <string name="razorpay_api_key">rzp_test_RtEFhSFhqt7iBi</string>
 </resources>
