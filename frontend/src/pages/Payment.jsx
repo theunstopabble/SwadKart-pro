@@ -4,12 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { savePaymentMethod } from "../redux/cartSlice";
 import CheckoutSteps from "../components/CheckoutSteps";
 import { CreditCard, Banknote, ArrowRight } from "lucide-react";
-// 👇 IMPORT CAPACITOR
-import { Capacitor } from "@capacitor/core";
 
 const Payment = () => {
   const cart = useSelector((state) => state.cart);
-  const { shippingAddress, userInfo } = cart;
+  const { shippingAddress } = cart;
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -22,74 +20,22 @@ const Payment = () => {
     }
   }, [shippingAddress, navigate]);
 
-  // 🚀 PAYMENT HANDLER (UPDATED)
-  const submitHandler = async (e) => {
+  const submitHandler = (e) => {
     e.preventDefault();
-
-    // 1️⃣ Agar COD hai, to seedha aage badho
-    if (paymentMethod === "COD") {
-      dispatch(savePaymentMethod("COD"));
-      navigate("/placeorder");
-      return;
-    }
-
-    // 2️⃣ Agar Mobile App (Android/iOS) hai + Online Payment
-    if (Capacitor.isNativePlatform() && paymentMethod === "Online") {
-      const options = {
-        description: "SwadKart Order",
-        image: "https://swadkart-pro.vercel.app/logo.png",
-        currency: "INR",
-        key: "rzp_test_RtEFhSFhqt7iBi", // Test Key
-        amount: "50000", // ₹500 Test Amount
-        name: "SwadKart",
-        prefill: {
-          email: userInfo?.email || "user@swadkart.com",
-          contact: userInfo?.mobile || "9876543210",
-          name: userInfo?.name || "User",
-        },
-        theme: { color: "#D10024" },
-      };
-
-      try {
-        // @ts-ignore
-        window.RazorpayCheckout.open(
-          options,
-          (paymentId) => {
-            // ✅ Success: Alert dikhao aur aage badho
-            // alert(`Payment ID: ${paymentId}`); // Optional alert hata sakte ho
-            dispatch(savePaymentMethod("Online"));
-            navigate("/placeorder");
-          },
-          (error) => {
-            // ❌ Failure
-            alert(`Payment Failed: ${error.description}`);
-          }
-        );
-      } catch (err) {
-        alert("Plugin Error: " + err.message);
-      }
-
-      // ⚠️ IMPORTANT: Yahan 'return' lagana zaroori hai taaki niche wala code na chale
-      return;
-    }
-
-    // 3️⃣ Agar Website (PWA) hai + Online Payment
-    // To normal flow (Place Order page par hi payment hoga)
-    dispatch(savePaymentMethod("Online"));
+    // 1. Payment Method Save karo
+    dispatch(savePaymentMethod(paymentMethod));
+    // 2. Agle page par bhejo (Payment wahan hoga)
     navigate("/placeorder");
   };
 
   return (
     <div className="min-h-screen bg-black text-white pt-24 px-4 pb-10">
       <CheckoutSteps step1 step2 step3 />
-
       <div className="max-w-lg mx-auto bg-gray-900/50 backdrop-blur-md p-8 rounded-2xl border border-gray-800 shadow-2xl mt-8">
         <h1 className="text-3xl font-extrabold mb-8 flex items-center gap-3">
           Payment Method
         </h1>
-
         <form onSubmit={submitHandler} className="space-y-6">
-          {/* ONLINE OPTION */}
           <label
             className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
               paymentMethod === "Online"
@@ -113,8 +59,6 @@ const Payment = () => {
               <span className="text-xs text-gray-400">UPI, Cards, Wallets</span>
             </div>
           </label>
-
-          {/* COD OPTION */}
           <label
             className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${
               paymentMethod === "COD"
@@ -137,12 +81,8 @@ const Payment = () => {
               <span className="block font-bold text-white">
                 Cash on Delivery
               </span>
-              <span className="text-xs text-gray-400">
-                Pay when food arrives
-              </span>
             </div>
           </label>
-
           <button
             type="submit"
             className="w-full bg-primary hover:bg-red-600 text-white font-bold py-4 rounded-xl shadow-lg mt-6 flex justify-center items-center gap-2"
