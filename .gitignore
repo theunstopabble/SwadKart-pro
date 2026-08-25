@@ -123,3 +123,6 @@ qr.png
 qr2.png
 nul
 qr.html
+
+# Mermaid diagram sources — manually managed via mermaid.ai/live/edit
+docs/DIAGRAM_SOURCES.md

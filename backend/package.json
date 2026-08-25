@@ -32,7 +32,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "mammoth": "^1.12.0",
-    "mongoose": "^9.0.2",
+    "mongoose": "^9.9.4",
     "morgan": "^1.11.0",
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^2.2.1",
@@ -41,7 +41,7 @@
     "qrcode": "^1.5.4",
     "razorpay": "^2.9.6",
     "redis": "^5.11.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.3",
     "socket.io": "^4.8.3",
     "tiktoken": "^1.0.22"
   },

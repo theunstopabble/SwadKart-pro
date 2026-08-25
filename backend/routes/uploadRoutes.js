@@ -35,8 +35,8 @@ router.post("/", protect, (req, res) => {
       return res.status(400).json({ message: "No image file provided" });
     }
 
-    // 🔍 DEBUGGING: Terminal me check karo ki Cloudinary ne kya bheja
-    console.log("☁️ Cloudinary Response:", req.file);
+    // 🔍 DEBUGGING: Log only safe numeric metadata (never raw req.file — log-injection risk)
+    console.log(`☁️ Cloudinary upload ok (${req.file.size} bytes)`);
 
     // 🛠️ SMART FIX: URL kahin bhi ho, hum dhund lenge
     // Cloudinary kabhi 'path', kabhi 'secure_url', kabhi 'url' bhejta hai
